@@ -3687,7 +3687,7 @@
                 if (result.success) {
                     document.getElementById(`desc-stat-${i}`).innerHTML = '<span style="color: var(--accent-green);"><svg class="ico"><use href="#i-check"/></svg></span>';
                 } else {
-                    document.getElementById(`desc-stat-${i}`).innerHTML = '<span style="color: var(--danger);"><svg class='ico' style='width:11px;height:11px;vertical-align:middle;color:var(--danger);'><use href='#i-cross'/></svg></span>';
+                    document.getElementById(`desc-stat-${i}`).innerHTML = '<span style="color: var(--danger);"><svg class="ico" style="width:11px;height:11px;vertical-align:middle;color:var(--danger);"><use href="#i-cross"/></svg></span>';
                 }
             }
 
@@ -3779,7 +3779,7 @@
                     <h4 style="color: var(--text-primary); margin: 0 0 5px 0;">${repo.name}</h4>
                     <p style="margin: 0; color: var(--text-secondary);">${repo.description || 'No description'}</p>
                     <span style="font-size: 11px; color: ${repo.private ? 'var(--danger)' : 'var(--accent-green)'};">
-                        ${repo.private ? '<svg class='ico' style='width:12px;height:12px;vertical-align:middle;'><use href='#i-lock'/></svg> Private' : '<svg class='ico' style='width:12px;height:12px;vertical-align:middle;'><use href='#i-globe'/></svg> Public'}
+                        ${repo.private ? '<svg class="ico" style="width:12px;height:12px;vertical-align:middle;"><use href="#i-lock"/></svg> Private' : '<svg class="ico" style="width:12px;height:12px;vertical-align:middle;"><use href="#i-globe"/></svg> Public'}
                     </span>
                     ${repo.language ? `<span style="font-size: 11px; margin-left: 10px;"><svg class="ico" style="width:11px;height:11px;vertical-align:middle;"><use href="#i-file"/></svg> ${repo.language}</span>` : ''}
                 </div>
@@ -3791,14 +3791,14 @@
                     <div style="display: flex; gap: 8px; margin-bottom: 10px;">
                         <input type="text" value="${repo.cloneUrl}" readonly 
                             style="flex: 1; background: var(--bg-input); color: var(--text-primary); border: 1px solid var(--border-color); padding: 8px; border-radius: 4px; font-size: 11px;">
-                        <button class="btn-dark" onclick="navigator.clipboard.writeText('${repo.cloneUrl}'); this.innerHTML='<svg class="ico" style="width:12px;height:12px;"><use href="#i-check"/></svg>';" style="padding: 8px 12px;"><svg class='ico' style='width:12px;height:12px;vertical-align:middle;'><use href='#i-list'/></svg></button>
+                        <button class="btn-dark" onclick="navigator.clipboard.writeText('${repo.cloneUrl}'); this.innerHTML='<svg class="ico" style="width:12px;height:12px;"><use href="#i-check"/></svg>';" style="padding: 8px 12px;"><svg class="ico" style="width:12px;height:12px;vertical-align:middle;"><use href="#i-list"/></svg></button>
                     </div>
 
                     <p style="margin: 0 0 5px 0; font-size: 12px; color: var(--text-secondary);">SSH:</p>
                     <div style="display: flex; gap: 8px;">
                         <input type="text" value="${repo.sshUrl}" readonly 
                             style="flex: 1; background: var(--bg-input); color: var(--text-primary); border: 1px solid var(--border-color); padding: 8px; border-radius: 4px; font-size: 11px;">
-                        <button class="btn-dark" onclick="navigator.clipboard.writeText('${repo.sshUrl}'); this.innerHTML='<svg class="ico" style="width:12px;height:12px;"><use href="#i-check"/></svg>';" style="padding: 8px 12px;"><svg class='ico' style='width:12px;height:12px;vertical-align:middle;'><use href='#i-list'/></svg></button>
+                        <button class="btn-dark" onclick="navigator.clipboard.writeText('${repo.sshUrl}'); this.innerHTML='<svg class="ico" style="width:12px;height:12px;"><use href="#i-check"/></svg>';" style="padding: 8px 12px;"><svg class="ico" style="width:12px;height:12px;vertical-align:middle;"><use href="#i-list"/></svg></button>
                     </div>
                 </div>
 
@@ -3820,7 +3820,7 @@ npm start</pre>
 
                 <div style="margin-top: 15px; text-align: center;">
                     <button class="btn-dark" onclick="window.api.openExternal('${repo.htmlUrl}')" style="padding: 10px 20px;">
-                        <svg class='ico' style='width:12px;height:12px;vertical-align:middle;'><use href='#i-globe'/></svg> Open on GitHub
+                        <svg class="ico" style="width:12px;height:12px;vertical-align:middle;"><use href="#i-globe"/></svg> Open on GitHub
                     </button>
                 </div>
             `;
@@ -3990,7 +3990,7 @@ npm start</pre>
                 // Refresh the detail modal
                 setTimeout(() => openRepoDetail(fullName), 1000);
             } else {
-                btn.innerText = '<svg class='ico' style='width:11px;height:11px;vertical-align:middle;color:var(--danger);'><use href='#i-cross'/></svg> Failed';
+                btn.innerText = '<svg class="ico" style="width:11px;height:11px;vertical-align:middle;color:var(--danger);"><use href="#i-cross"/></svg> Failed';
                 btn.style.background = 'var(--danger)';
                 showToast(`Sync failed: ${result.error}`, 'error');
             }
@@ -4034,10 +4034,10 @@ npm start</pre>
             const success = results.filter(r => r.status === 'success').length;
             const failed = results.filter(r => r.status === 'error').length;
 
-            btn.innerText = visibility === 'public' ? '<svg class='ico' style='width:12px;height:12px;vertical-align:middle;'><use href='#i-globe'/></svg> Make Public' : '<svg class='ico' style='width:12px;height:12px;vertical-align:middle;'><use href='#i-lock'/></svg> Make Private';
+            btn.innerText = visibility === 'public' ? '<svg class="ico" style="width:12px;height:12px;vertical-align:middle;"><use href="#i-globe"/></svg> Make Public' : '<svg class="ico" style="width:12px;height:12px;vertical-align:middle;"><use href="#i-lock"/></svg> Make Private';
             document.getElementById('visibilityModal').style.display = 'none';
 
-            showToast(`<svg class='ico' style='width:11px;height:11px;vertical-align:middle;color:var(--accent-green);'><use href='#i-check'/></svg> Success: ${success}\n<svg class='ico' style='width:11px;height:11px;vertical-align:middle;color:var(--danger);'><use href='#i-cross'/></svg> Failed: ${failed}`, success > 0 ? 'success' : 'error', 'Visibility Changed');
+            showToast(`<svg class="ico" style="width:11px;height:11px;vertical-align:middle;color:var(--accent-green);"><use href="#i-check"/></svg> Success: ${success}\n<svg class="ico" style="width:11px;height:11px;vertical-align:middle;color:var(--danger);"><use href="#i-cross"/></svg> Failed: ${failed}`, success > 0 ? 'success' : 'error', 'Visibility Changed');
             loadRepos();
         }
 
@@ -4098,7 +4098,7 @@ npm start</pre>
             btn.innerText = action === 'add' ? 'Add Topics' : 'Remove Topics';
             document.getElementById('topicsModal').style.display = 'none';
 
-            showToast(`<svg class='ico' style='width:11px;height:11px;vertical-align:middle;color:var(--accent-green);'><use href='#i-check'/></svg> Success: ${success}\n<svg class='ico' style='width:11px;height:11px;vertical-align:middle;color:var(--danger);'><use href='#i-cross'/></svg> Failed: ${failed}`, success > 0 ? 'success' : 'error', `Topics ${action === 'add' ? 'Added' : 'Removed'}`);
+            showToast(`<svg class="ico" style="width:11px;height:11px;vertical-align:middle;color:var(--accent-green);"><use href="#i-check"/></svg> Success: ${success}\n<svg class="ico" style="width:11px;height:11px;vertical-align:middle;color:var(--danger);"><use href="#i-cross"/></svg> Failed: ${failed}`, success > 0 ? 'success' : 'error', `Topics ${action === 'add' ? 'Added' : 'Removed'}`);
             loadRepos();
         }
 
@@ -4147,7 +4147,7 @@ npm start</pre>
             btn.innerText = 'Add License to Repos';
             document.getElementById('licenseModal').style.display = 'none';
 
-            showToast(`<svg class='ico' style='width:11px;height:11px;vertical-align:middle;color:var(--accent-green);'><use href='#i-check'/></svg> Success: ${success}\n<svg class='ico' style='width:11px;height:11px;vertical-align:middle;color:var(--danger);'><use href='#i-cross'/></svg> Failed: ${failed}`, success > 0 ? 'success' : 'error', 'Licenses Added');
+            showToast(`<svg class="ico" style="width:11px;height:11px;vertical-align:middle;color:var(--accent-green);"><use href="#i-check"/></svg> Success: ${success}\n<svg class="ico" style="width:11px;height:11px;vertical-align:middle;color:var(--danger);"><use href="#i-cross"/></svg> Failed: ${failed}`, success > 0 ? 'success' : 'error', 'Licenses Added');
             loadRepos();
         }
 
@@ -4209,7 +4209,7 @@ npm start</pre>
                     <span style="font-size: 12px;">${r.name}</span>
                     <span style="font-size: 11px; color: var(--text-secondary);">Last push: ${new Date(r.lastPush).toLocaleDateString()}</span>
                 </div>
-            `).join('') || '<p style="color: var(--accent-green); font-size: 12px;">No stale repos! <svg class='ico'><use href='#i-sparkles'/></svg></p>';
+            `).join('') || '<p style="color: var(--accent-green); font-size: 12px;">No stale repos! <svg class="ico"><use href="#i-sparkles"/></svg></p>';
 
             // Large repos list
             const largeList = a.largeRepos.slice(0, 10).map(r => `
@@ -4255,7 +4255,7 @@ npm start</pre>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                     <div style="background: var(--bg-card); border-radius: 8px; padding: 15px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                            <h5 style="color: var(--accent-yellow); margin: 0;"><svg class='ico' style='width:12px;height:12px;vertical-align:middle;'><use href='#i-clock'/></svg> Stale Repos (${a.staleRepos.length})</h5>
+                            <h5 style="color: var(--accent-yellow); margin: 0;"><svg class="ico" style="width:12px;height:12px;vertical-align:middle;"><use href="#i-clock"/></svg> Stale Repos (${a.staleRepos.length})</h5>
                             <button class="btn-dark" onclick="filterStaleRepos(); document.getElementById('analysisModal').style.display='none';" style="padding: 4px 10px; font-size: 10px;">Filter</button>
                         </div>
                         ${staleList}
@@ -5076,7 +5076,7 @@ npm start</pre>
             tbody.innerHTML = projectFolders.map((f, i) => {
                 const statusChip = chipHtml(f.status);
                 const gitBadge = f.hasGit
-                    ? '<span style="color:var(--accent-green);font-size:11px;"><svg class='ico' style='width:12px;height:12px;vertical-align:middle;color:var(--accent-green);'><use href='#i-check'/></svg> Git</span>'
+                    ? '<span style="color:var(--accent-green);font-size:11px;"><svg class="ico" style="width:12px;height:12px;vertical-align:middle;color:var(--accent-green);"><use href="#i-check"/></svg> Git</span>'
                     : '<span style="color:var(--accent-yellow);font-size:11px;">⊕ Init</span>';
 
                 const detectedLabel = f.detectedType
@@ -5335,13 +5335,13 @@ npm start</pre>
                     forkRepos[i]._upstreamStatus = res.status;
 
                     if (res.status === 'identical') {
-                        cell.innerHTML = '<span class="status-chip chip-synced" style="font-size:10px;"><svg class='ico' style='width:12px;height:12px;vertical-align:middle;color:var(--accent-green);'><use href='#i-check'/></svg> Up to date</span>';
+                        cell.innerHTML = '<span class="status-chip chip-synced" style="font-size:10px;"><svg class="ico" style="width:12px;height:12px;vertical-align:middle;color:var(--accent-green);"><use href="#i-check"/></svg> Up to date</span>';
                     } else if (res.behind > 0 && res.ahead === 0) {
                         cell.innerHTML = `<span class="status-chip" style="font-size:10px; background:var(--accent-yellow); color:#000;">⬇ ${res.behind} commit${res.behind > 1 ? 's' : ''} behind</span>`;
                     } else if (res.ahead > 0 && res.behind === 0) {
-                        cell.innerHTML = `<span class="status-chip" style="font-size:10px; background:var(--accent-blue); color:#fff;"><svg class='ico' style='width:10px;height:10px;vertical-align:middle;'><use href='#i-rocket'/></svg> ${res.ahead} commit${res.ahead > 1 ? 's' : ''} ahead</span>`;
+                        cell.innerHTML = `<span class="status-chip" style="font-size:10px; background:var(--accent-blue); color:#fff;"><svg class="ico" style="width:10px;height:10px;vertical-align:middle;"><use href="#i-rocket"/></svg> ${res.ahead} commit${res.ahead > 1 ? 's' : ''} ahead</span>`;
                     } else if (res.status === 'diverged') {
-                        cell.innerHTML = `<span class="status-chip" style="font-size:10px; background:var(--accent-purple); color:#fff;"><svg class='ico' style='width:10px;height:10px;vertical-align:middle;'><use href='#i-rocket'/></svg>${res.ahead} ⬇${res.behind} diverged</span>`;
+                        cell.innerHTML = `<span class="status-chip" style="font-size:10px; background:var(--accent-purple); color:#fff;"><svg class="ico" style="width:10px;height:10px;vertical-align:middle;"><use href="#i-rocket"/></svg>${res.ahead} ⬇${res.behind} diverged</span>`;
                     } else {
                         cell.innerHTML = '<span style="color:var(--text-secondary);">—</span>';
                     }
