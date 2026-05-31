@@ -3197,6 +3197,7 @@
                         <div class="card-meta">
                             <div style="display: flex; gap: 10px; align-items: center;">
                                 <div class="badge-star"><svg class="ico" style="width:10px;height:10px;vertical-align:middle;"><use href="#i-star"/></svg>  ${repo.stargazers_count}</div>
+                                ${repo.permissions && repo.permissions.push ? `<div class="badge-star" id="clone-stat-${repo.id}" title="Clones in the last 14 days"><svg class="ico" style="width:10px;height:10px;vertical-align:middle;"><use href="#i-download"/></svg> <span class="cs-val">…</span></div>` : ''}
                                 ${licenseBadge}
                             </div>
                             <div style="display:flex; align-items:center; gap:8px;">
@@ -3230,6 +3231,34 @@
             // Pagination Info
             document.getElementById('pageInfo').innerText = `Page ${currentPage} / ${maxPage}`;
             document.getElementById('paginationBar').style.display = total > 0 ? 'flex' : 'none';
+
+            // Load per-card clone stats for the visible page (own repos only)
+            loadPageCloneStats(pageRepos);
+        }
+
+        // Fetch & display 14-day clone counts on each visible repo card (own repos only)
+        async function loadPageCloneStats(pageRepos) {
+            const own = (pageRepos || []).filter(r => r.permissions && r.permissions.push);
+            if (!own.length) return;
+            try {
+                const token = await window.api.getToken();
+                if (!token) return;
+                const res = await window.api.getCloneStats({ token, repos: own.map(r => r.full_name) });
+                if (!res || !res.success) return;
+                const map = {};
+                (res.perRepo || []).forEach(r => { map[r.fullName] = r; });
+                own.forEach(r => {
+                    const el = document.getElementById('clone-stat-' + r.id);
+                    if (!el) return;
+                    const stat = map[r.full_name];
+                    const count = stat ? stat.count : 0;
+                    const span = el.querySelector('.cs-val');
+                    if (span) span.textContent = count;
+                    el.title = stat
+                        ? `${stat.count} clones · ${stat.uniques} unique cloners (last 14 days)`
+                        : 'Clones (last 14 days)';
+                });
+            } catch (e) { /* traffic API may be unavailable; leave placeholders */ }
         }
 
         function toggleSelectAll() {
