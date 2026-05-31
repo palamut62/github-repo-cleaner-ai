@@ -43,9 +43,19 @@ function createIco(pngBuffers, sizes) {
 }
 
 async function generate() {
+    // Center-crop the source to a square so non-square art doesn't letterbox
+    const meta = await sharp(srcPath).metadata();
+    const side = Math.min(meta.width, meta.height);
+    const left = Math.round((meta.width - side) / 2);
+    const top = Math.round((meta.height - side) / 2);
+    const squareBuf = await sharp(srcPath)
+        .extract({ left, top, width: side, height: side })
+        .png()
+        .toBuffer();
+
     // Resize to 512x512 PNG
-    await sharp(srcPath)
-        .resize(512, 512, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    await sharp(squareBuf)
+        .resize(512, 512, { fit: 'cover' })
         .png()
         .toFile(path.join(assetsDir, 'icon.png'));
     console.log('icon.png (512x512)');
@@ -54,8 +64,8 @@ async function generate() {
     const sizes = [256, 128, 64, 48, 32, 16];
     const pngBuffers = [];
     for (const s of sizes) {
-        const buf = await sharp(srcPath)
-            .resize(s, s, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+        const buf = await sharp(squareBuf)
+            .resize(s, s, { fit: 'cover' })
             .png()
             .toBuffer();
         pngBuffers.push(buf);
