@@ -2991,14 +2991,14 @@
                 grid.classList.add('list-view');
                 btnList.style.background = 'rgba(255,255,255,0.1)';
                 btnGrid.style.background = 'transparent';
-                btnList.innerText = '<svg class="ico"><use href="#i-list"/></svg>';
-                btnGrid.innerText = '<svg class="ico"><use href="#i-box"/></svg>';
+                btnList.innerHTML = '<svg class="ico"><use href="#i-list"/></svg>';
+                btnGrid.innerHTML = '<svg class="ico"><use href="#i-box"/></svg>';
             } else {
                 grid.classList.remove('list-view');
                 btnList.style.background = 'transparent';
                 btnGrid.style.background = 'rgba(255,255,255,0.1)';
-                btnList.innerText = '<svg class="ico"><use href="#i-list"/></svg>';
-                btnGrid.innerText = '<svg class="ico"><use href="#i-box"/></svg>';
+                btnList.innerHTML = '<svg class="ico"><use href="#i-list"/></svg>';
+                btnGrid.innerHTML = '<svg class="ico"><use href="#i-box"/></svg>';
             }
         }
 
