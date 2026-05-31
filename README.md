@@ -1,4 +1,4 @@
-# GitHub Repo Manager & Cleaner
+# GitHub Repo Organizer
 
 A powerful Electron desktop application designed to help you manage, clean up, and intelligently organize your GitHub repositories using AI.
 

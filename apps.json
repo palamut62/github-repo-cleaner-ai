@@ -23,7 +23,7 @@
   "apps": [
     {
       "id": "github-repo-cleaner-ai",
-      "name": "GitHub Repo Manager & Cleaner",
+      "name": "GitHub Repo Organizer",
       "subtitle": "AI-powered GitHub repository management",
       "description": "Electron desktop app for managing, cleaning, and organizing GitHub repositories with AI-powered features like smart rename, README generation, and commit analysis.",
       "longDescription": "A comprehensive Electron desktop application that streamlines GitHub repository management with AI-powered features. Manage all your repositories with source/fork distinction, publish local projects to GitHub with smart .gitignore generation, analyze stale and large repos, sync forks, and leverage AI for smart renaming, description generation, README creation, and commit message optimization using Conventional Commits standards.",

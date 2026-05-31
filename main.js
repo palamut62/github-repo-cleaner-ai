@@ -65,7 +65,7 @@ function createTray() {
 
     const contextMenu = Menu.buildFromTemplate([
         {
-            label: 'Open GitHub Repo Cleaner',
+            label: 'Open GitHub Repo Organizer',
             click: () => {
                 if (mainWindow) {
                     mainWindow.show();
@@ -83,7 +83,7 @@ function createTray() {
         }
     ]);
 
-    tray.setToolTip('GitHub Repo Cleaner AI');
+    tray.setToolTip('GitHub Repo Organizer');
     tray.setContextMenu(contextMenu);
 
     tray.on('double-click', () => {
@@ -125,7 +125,7 @@ function githubRequest(path, method, token, body = null, extraHeaders = {}) {
             path: path,
             method: method,
             headers: {
-                'User-Agent': 'GitHub-Repo-Cleaner',
+                'User-Agent': 'GitHub-Repo-Organizer',
                 'Authorization': `token ${token}`,
                 'Accept': 'application/vnd.github.v3+json',
                 ...extraHeaders
@@ -706,7 +706,7 @@ ipcMain.handle('createReadmeInRepo', async (event, { token, fullName, content })
         }
 
         const body = {
-            message: sha ? 'Update README.md via GitHub Repo Editor' : 'Create README.md via GitHub Repo Editor',
+            message: sha ? 'Update README.md via GitHub Repo Organizer' : 'Create README.md via GitHub Repo Organizer',
             content: Buffer.from(content).toString('base64')
         };
 

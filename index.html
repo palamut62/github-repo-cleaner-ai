@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GitHub Repo Editor</title>
+    <title>GitHub Repo Organizer</title>
     <!-- Font: Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -707,6 +707,27 @@
             box-sizing: border-box;
         }
 
+        /* Masked key field with show/hide toggle */
+        .key-field { position: relative; }
+        .key-field .auth-input { padding-right: 38px; }
+        .key-field .key-toggle {
+            position: absolute;
+            top: 5px;
+            right: 6px;
+            height: calc(100% - 20px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 0;
+        }
+        .key-field .key-toggle:hover { color: var(--text-primary); }
+        .key-field .key-toggle .ico { width: 16px; height: 16px; }
+
         /* Toast Notifications */
         .toast-container {
             position: fixed;
@@ -1384,6 +1405,8 @@
             <symbol id="i-branch" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="7" r="2.5"/><path d="M6 8.5v7M18 9.5c0 4-6 2.5-6 6.5"/></symbol>
             <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 2.5 15 0 18M12 3c-2.5 2.5-2.5 15 0 18"/></symbol>
             <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+            <symbol id="i-eye" viewBox="0 0 24 24"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></symbol>
+            <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M9.9 5.2A10.5 10.5 0 0 1 12 5c7 0 11 7 11 7a18 18 0 0 1-3.2 3.9M6.6 6.6A18 18 0 0 0 1 12s4 7 11 7a10.5 10.5 0 0 0 4.4-.9"/><path d="M9.5 9.5a3 3 0 0 0 4.2 4.2M2 2l20 20"/></symbol>
             <symbol id="i-scroll" viewBox="0 0 24 24"><path d="M6 4h11v13a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V6a2 2 0 0 1 2-2Z"/><path d="M17 4a2 2 0 0 1 2 2v2h-2"/><path d="M8 8h6M8 12h6"/></symbol>
             <symbol id="i-warning" viewBox="0 0 24 24"><path d="M12 3 2.5 20h19Z"/><path d="M12 10v4M12 17h.01"/></symbol>
             <symbol id="i-file" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6Z"/><path d="M14 3v4h4M9 13h6M9 17h6"/></symbol>
@@ -1424,7 +1447,7 @@
     <!-- Windows Title Bar -->
     <div class="win-titlebar">
         <div class="win-titlebar-title">
-            <span>GitHub Repo Cleaner AI</span>
+            <span>GitHub Repo Organizer</span>
         </div>
         <div class="win-controls">
             <button class="win-btn" onclick="window.api.minimize()" title="Minimize">
@@ -1721,7 +1744,7 @@
                         </svg>
                     </div>
                 </div>
-                <div style="opacity: 0.5; font-size: 10px;">GitHub Repo Editor v2.4.0</div>
+                <div style="opacity: 0.5; font-size: 10px;">GitHub Repo Organizer v2.4.0</div>
             </div>
         </div>
     </div>
@@ -2246,9 +2269,15 @@
             <div class="settings-tab-content" id="settingsTabApi" style="display:none;">
                 <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 8px;">API Keys</div>
                 <label style="font-size:12px;">GitHub Token:</label>
-                <input type="text" id="settingsToken" class="auth-input" placeholder="ghp_...">
+                <div class="key-field">
+                    <input type="password" id="settingsToken" class="auth-input" placeholder="ghp_..." autocomplete="off" spellcheck="false">
+                    <button type="button" class="key-toggle" title="Show / hide" onclick="toggleKeyVisibility('settingsToken', this)"><svg class="ico"><use href="#i-eye"/></svg></button>
+                </div>
                 <label style="font-size:12px;">OpenRouter Key:</label>
-                <input type="text" id="settingsRouterKey" class="auth-input" placeholder="sk-or-...">
+                <div class="key-field">
+                    <input type="password" id="settingsRouterKey" class="auth-input" placeholder="sk-or-..." autocomplete="off" spellcheck="false">
+                    <button type="button" class="key-toggle" title="Show / hide" onclick="toggleKeyVisibility('settingsRouterKey', this)"><svg class="ico"><use href="#i-eye"/></svg></button>
+                </div>
 
                 <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); margin: 12px 0 8px;">AI Model</div>
                 <div style="display:flex; gap:6px; margin-bottom:4px;">
@@ -3314,11 +3343,29 @@
             document.getElementById('settingsTabPublish').style.display = tab === 'publish' ? 'block' : 'none';
         }
 
+        function toggleKeyVisibility(inputId, btn) {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+            const show = input.type === 'password';
+            input.type = show ? 'text' : 'password';
+            const use = btn.querySelector('use');
+            if (use) use.setAttribute('href', show ? '#i-eye-off' : '#i-eye');
+            btn.title = show ? 'Hide' : 'Show';
+        }
+
         async function openSettings() {
             const t = await window.api.getToken();
             const k = await window.api.getRouterKey();
             document.getElementById('settingsToken').value = t || '';
             document.getElementById('settingsRouterKey').value = k || '';
+
+            // Always start masked; reset toggle icons to "show"
+            ['settingsToken', 'settingsRouterKey'].forEach(id => {
+                const inp = document.getElementById(id);
+                if (inp) inp.type = 'password';
+                const use = inp && inp.parentElement.querySelector('.key-toggle use');
+                if (use) use.setAttribute('href', '#i-eye');
+            });
 
             // Use cached config (avoid redundant disk read)
             const config = cachedAppConfig || {};
@@ -6229,7 +6276,7 @@ npm start</pre>
         <span class="sb-item"><b id="sbForks">0</b>&nbsp;forks</span>
         <span class="sb-sep">·</span>
         <span class="sb-item"><b id="sbPrivate">0</b>&nbsp;private</span>
-        <span class="sb-right" id="sbVersion">GitHub Repo Cleaner AI</span>
+        <span class="sb-right" id="sbVersion">GitHub Repo Organizer</span>
     </div>
 
     <script>

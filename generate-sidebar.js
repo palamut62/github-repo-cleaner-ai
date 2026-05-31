@@ -36,7 +36,7 @@ async function generate() {
 
         <!-- App name -->
         <text x="${width / 2}" y="190" text-anchor="middle" fill="#58a6ff" font-family="Segoe UI, Arial" font-size="11" font-weight="600">GitHub Repo</text>
-        <text x="${width / 2}" y="206" text-anchor="middle" fill="#8b5cf6" font-family="Segoe UI, Arial" font-size="11" font-weight="600">Cleaner AI</text>
+        <text x="${width / 2}" y="206" text-anchor="middle" fill="#8b5cf6" font-family="Segoe UI, Arial" font-size="11" font-weight="600">Organizer</text>
 
         <!-- Version -->
         <text x="${width / 2}" y="230" text-anchor="middle" fill="#8b949e" font-family="Segoe UI, Arial" font-size="9">v1.0.0</text>
