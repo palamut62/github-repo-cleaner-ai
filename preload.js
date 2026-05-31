@@ -4,9 +4,6 @@ contextBridge.exposeInMainWorld('api', {
     // API to fetch repositories
     getRepos: (token) => ipcRenderer.invoke('getRepos', token),
 
-    // API to show confirm dialog before deletion
-    confirmDelete: (count) => ipcRenderer.invoke('confirmDelete', count),
-
     // API to perform delete
     deleteRepos: (data) => ipcRenderer.invoke('deleteRepos', data),
 
@@ -27,6 +24,7 @@ contextBridge.exposeInMainWorld('api', {
     generateReadme: (data) => ipcRenderer.invoke('generateReadme', data),
     createReadmeInRepo: (data) => ipcRenderer.invoke('createReadmeInRepo', data),
     getRepoDetails: (data) => ipcRenderer.invoke('getRepoDetails', data),
+    getCloneStats: (data) => ipcRenderer.invoke('getCloneStats', data),
 
     // Detailed Repo Info & Fork Sync
     getDetailedRepoInfo: (data) => ipcRenderer.invoke('getDetailedRepoInfo', data),
@@ -42,7 +40,6 @@ contextBridge.exposeInMainWorld('api', {
 
     // Analysis & Cleanup
     analyzeAllRepos: (data) => ipcRenderer.invoke('analyzeAllRepos', data),
-    checkForkChanges: (data) => ipcRenderer.invoke('checkForkChanges', data),
 
     // External Repo Analyzer
     analyzeExternalRepo: (data) => ipcRenderer.invoke('analyzeExternalRepo', data),
@@ -78,7 +75,6 @@ contextBridge.exposeInMainWorld('api', {
 
     // .gitignore & Project Type
     detectProjectType: (folderPath) => ipcRenderer.invoke('detectProjectType', folderPath),
-    createGitignore: (data) => ipcRenderer.invoke('createGitignore', data),
 
     // Local Git Status & Quick Push
     checkLocalGitStatus: (data) => ipcRenderer.invoke('checkLocalGitStatus', data),
@@ -93,10 +89,8 @@ contextBridge.exposeInMainWorld('api', {
 
     // GitHub Explore
     searchRepos: (data) => ipcRenderer.invoke('searchRepos', data),
-    searchTopics: (data) => ipcRenderer.invoke('searchTopics', data),
     starRepo: (data) => ipcRenderer.invoke('starRepo', data),
     unstarRepo: (data) => ipcRenderer.invoke('unstarRepo', data),
-    checkStarred: (data) => ipcRenderer.invoke('checkStarred', data),
     forkRepo: (data) => ipcRenderer.invoke('forkRepo', data),
     getExploreRepoDetail: (data) => ipcRenderer.invoke('getExploreRepoDetail', data),
 

@@ -191,21 +191,7 @@ ipcMain.handle('getRepos', async (event, token) => {
     }
 });
 
-// 2. Confirm Delete Handler
-ipcMain.handle('confirmDelete', async (event, count) => {
-    const result = await dialog.showMessageBox(mainWindow, {
-        type: 'warning',
-        buttons: ['İptal', 'SİL'],
-        defaultId: 0,
-        title: 'Onay Gerekli',
-        message: `${count} adet repository seçtiniz.`,
-        detail: `Bu işlem geri alınamaz! Seçilen ${count} repoyu gerçekten silmek istiyor musunuz?`,
-        cancelId: 0,
-    });
-    return result.response === 1; // 1 = SİL butonuna tıklandıysa true
-});
-
-// 3. Delete Repos Handler
+// 2. Delete Repos Handler
 ipcMain.handle('deleteRepos', async (event, { token, repos }) => {
     const results = [];
 
@@ -649,6 +635,56 @@ ipcMain.handle('getRepoDetails', async (event, { token, fullName }) => {
                 language: data.language,
                 private: data.private
             }
+        };
+    } catch (e) {
+        return { success: false, error: e.message };
+    }
+});
+
+// 10b. Get clone/traffic stats for repositories (GitHub Traffic API, last 14 days)
+// Requires push access to each repo; repos without access are skipped silently.
+ipcMain.handle('getCloneStats', async (event, { token, repos }) => {
+    try {
+        if (!Array.isArray(repos) || repos.length === 0) {
+            return { success: true, total: 0, totalUniques: 0, perRepo: [], skipped: 0 };
+        }
+
+        const results = [];
+        let skipped = 0;
+        const CONCURRENCY = 5;
+
+        // Fetch in small batches to stay within rate limits
+        for (let i = 0; i < repos.length; i += CONCURRENCY) {
+            const batch = repos.slice(i, i + CONCURRENCY);
+            const batchResults = await Promise.all(batch.map(async (fullName) => {
+                try {
+                    const [owner, repo] = fullName.split('/');
+                    const data = await githubRequest(`/repos/${owner}/${repo}/traffic/clones`, 'GET', token);
+                    return {
+                        fullName,
+                        count: data && typeof data.count === 'number' ? data.count : 0,
+                        uniques: data && typeof data.uniques === 'number' ? data.uniques : 0,
+                        accessible: true
+                    };
+                } catch (e) {
+                    // 403 = no push access (can't read traffic), 404 = gone. Skip.
+                    return { fullName, count: 0, uniques: 0, accessible: false };
+                }
+            }));
+            results.push(...batchResults);
+        }
+
+        const accessible = results.filter(r => r.accessible);
+        skipped = results.length - accessible.length;
+        const total = accessible.reduce((s, r) => s + r.count, 0);
+        const totalUniques = accessible.reduce((s, r) => s + r.uniques, 0);
+
+        return {
+            success: true,
+            total,
+            totalUniques,
+            skipped,
+            perRepo: accessible.sort((a, b) => b.count - a.count)
         };
     } catch (e) {
         return { success: false, error: e.message };
@@ -1144,46 +1180,7 @@ function formatSize(sizeKB) {
     return `${(sizeKB / (1024 * 1024)).toFixed(2)} GB`;
 }
 
-// 20. Check if Fork has changes compared to parent
-ipcMain.handle('checkForkChanges', async (event, { token, fullName }) => {
-    try {
-        const [owner, repo] = fullName.split('/');
-
-        // Get repo data to find parent
-        const repoData = await githubRequest(`/repos/${owner}/${repo}`, 'GET', token);
-
-        if (!repoData.fork || !repoData.parent) {
-            return { success: false, error: 'Not a fork or parent not accessible' };
-        }
-
-        // Compare with parent
-        try {
-            const comparison = await githubRequest(
-                `/repos/${owner}/${repo}/compare/${repoData.parent.owner.login}:${repoData.parent.default_branch}...${repoData.default_branch}`,
-                'GET',
-                token
-            );
-
-            return {
-                success: true,
-                data: {
-                    hasChanges: comparison.ahead_by > 0,
-                    aheadBy: comparison.ahead_by,
-                    behindBy: comparison.behind_by,
-                    totalCommits: comparison.total_commits,
-                    parentFullName: repoData.parent.full_name
-                }
-            };
-        } catch (e) {
-            // If comparison fails, assume no changes or inaccessible
-            return { success: true, data: { hasChanges: false, aheadBy: 0, behindBy: 0, totalCommits: 0 } };
-        }
-    } catch (e) {
-        return { success: false, error: e.message };
-    }
-});
-
-// ========== REPO ANALYZER FEATURE ==========
+// 19. Analyze All Repos (Stale, Size, Unchanged Forks)
 
 // Parse GitHub URL to get owner and repo
 function parseGitHubUrl(url) {
@@ -2403,20 +2400,6 @@ ipcMain.handle('detectProjectType', async (event, folderPath) => {
     }
 });
 
-ipcMain.handle('createGitignore', async (event, { folderPath, projectType }) => {
-    try {
-        const gitignorePath = path.join(folderPath, '.gitignore');
-        if (fs.existsSync(gitignorePath)) {
-            return { success: false, existed: true, error: '.gitignore already exists' };
-        }
-        const content = getGitignore(projectType);
-        fs.writeFileSync(gitignorePath, content, 'utf-8');
-        return { success: true, type: projectType };
-    } catch (e) {
-        return { success: false, error: e.message };
-    }
-});
-
 // ── GitHub Explore ──────────────────────────────────────────────────────────
 ipcMain.handle('searchRepos', async (event, { token, query, language, sort, order, page }) => {
     try {
@@ -2428,20 +2411,6 @@ ipcMain.handle('searchRepos', async (event, { token, query, language, sort, orde
         const result = await githubRequest(
             `/search/repositories?q=${encodeURIComponent(q)}&sort=${s}&order=${o}&per_page=30&page=${p}`,
             'GET', token
-        );
-        return result;
-    } catch (e) {
-        return { error: e.message };
-    }
-});
-
-ipcMain.handle('searchTopics', async (event, { token, query }) => {
-    try {
-        const q = query || 'is:featured';
-        const result = await githubRequest(
-            `/search/topics?q=${encodeURIComponent(q)}&per_page=30`,
-            'GET', token, null,
-            { 'Accept': 'application/vnd.github.mercy-preview+json' }
         );
         return result;
     } catch (e) {
@@ -2463,18 +2432,6 @@ ipcMain.handle('unstarRepo', async (event, { token, fullName }) => {
         await githubRequest(`/user/starred/${fullName}`, 'DELETE', token);
         return { success: true };
     } catch (e) {
-        return { error: e.message };
-    }
-});
-
-ipcMain.handle('checkStarred', async (event, { token, fullName }) => {
-    try {
-        await githubRequest(`/user/starred/${fullName}`, 'GET', token);
-        return { starred: true };
-    } catch (e) {
-        if (e.message && e.message.includes('404')) {
-            return { starred: false };
-        }
         return { error: e.message };
     }
 });

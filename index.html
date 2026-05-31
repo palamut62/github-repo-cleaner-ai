@@ -8,34 +8,36 @@
     <!-- Font: Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        /* === Atom "One Dark" palette === */
         :root, [data-theme="dark"] {
-            --bg-body: #1e1e1e;
-            --bg-sidebar: #252526;
-            --bg-card: #2d2d30;
-            --bg-input: #3e3e42;
-            --border-color: #454545;
-            --text-primary: #ffffff;
-            --text-secondary: #aaaaaa;
-            --accent-green: #3fb950;
-            --accent-yellow: #d29922;
-            --accent-blue: #58a6ff;
-            --accent-purple: #a371f7;
-            --danger: #f85149;
+            --bg-body: #282c34;       /* editor / main area */
+            --bg-sidebar: #21252b;    /* tree-view sidebar & panels */
+            --bg-card: #2c313c;       /* cards on main bg */
+            --bg-input: #1d1f23;      /* inputs / darkest surface */
+            --border-color: #181a1f;  /* hairline borders */
+            --text-primary: #d7dae0;  /* bright text */
+            --text-secondary: #828997;/* muted text */
+            --accent-green: #98c379;
+            --accent-yellow: #e5c07b;
+            --accent-blue: #528bff;   /* One Dark UI accent */
+            --accent-purple: #c678dd;
+            --danger: #e06c75;
         }
 
+        /* === Atom "One Light" palette === */
         [data-theme="light"] {
-            --bg-body: #f5f5f5;
-            --bg-sidebar: #ffffff;
+            --bg-body: #fafafa;
+            --bg-sidebar: #f0f1f3;
             --bg-card: #ffffff;
-            --bg-input: #e8e8e8;
-            --border-color: #d1d5db;
-            --text-primary: #1f2937;
-            --text-secondary: #6b7280;
-            --accent-green: #16a34a;
-            --accent-yellow: #ca8a04;
-            --accent-blue: #2563eb;
-            --accent-purple: #7c3aed;
-            --danger: #dc2626;
+            --bg-input: #eaecef;
+            --border-color: #d3d6db;
+            --text-primary: #383a42;
+            --text-secondary: #696c77;
+            --accent-green: #50a14f;
+            --accent-yellow: #c18401;
+            --accent-blue: #4078f2;
+            --accent-purple: #a626a4;
+            --danger: #e45649;
         }
 
         [data-theme="light"] .win-titlebar {
@@ -65,7 +67,8 @@
 
         body {
             margin: 0;
-            padding: 0;
+            padding: 0 0 24px 0;
+            box-sizing: border-box;
             font-family: 'Inter', sans-serif;
             background-color: var(--bg-body);
             color: var(--text-primary);
@@ -74,6 +77,30 @@
             height: 100vh;
             user-select: none;
         }
+
+        /* === Atom-style bottom status bar === */
+        .status-bar {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 24px;
+            background: var(--bg-input);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 0 12px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            z-index: 1000;
+            -webkit-app-region: no-drag;
+        }
+        .status-bar .sb-item { display: inline-flex; align-items: center; gap: 5px; }
+        .status-bar .sb-item .ico { width: 13px; height: 13px; opacity: 0.8; }
+        .status-bar .sb-item b { color: var(--text-primary); font-weight: 600; }
+        .status-bar .sb-sep { opacity: 0.4; }
+        .status-bar .sb-right { margin-left: auto; opacity: 0.7; }
 
         /* --- Sidebar --- */
         .sidebar {
@@ -239,19 +266,82 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 7px 12px;
-            margin-bottom: 2px;
-            border-radius: 8px;
+            padding: 5px 12px 5px 10px;
+            margin-bottom: 1px;
+            border-radius: 5px;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: background 0.15s, color 0.15s;
             font-size: 12px;
             color: var(--text-secondary);
+            position: relative;
         }
 
-        .nav-item:hover,
-        .nav-item.active {
-            background-color: rgba(255, 255, 255, 0.1);
+        .nav-item:hover {
+            background-color: rgba(255, 255, 255, 0.05);
             color: var(--text-primary);
+        }
+
+        .nav-item.active {
+            background-color: rgba(82, 139, 255, 0.14);
+            color: var(--text-primary);
+        }
+
+        /* Atom-style left accent bar on active item */
+        .nav-item.active::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 4px;
+            bottom: 4px;
+            width: 2px;
+            border-radius: 2px;
+            background: var(--accent-blue);
+        }
+
+        /* nav item label wraps icon + text */
+        .nav-item > span:first-child {
+            display: inline-flex;
+            align-items: center;
+            gap: 9px;
+        }
+
+        /* Monochrome line icons */
+        .ico {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 1.8;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            opacity: 0.85;
+        }
+        [data-theme="light"] .nav-item.active::before { background: var(--accent-blue); }
+
+        /* Per-row action buttons (clone / delete) in repo list */
+        .row-action-btn {
+            background: none;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            padding: 3px 6px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s, color 0.15s, border-color 0.15s;
+        }
+        .row-action-btn:hover {
+            background: var(--bg-input);
+            color: var(--text-primary);
+            border-color: var(--accent-blue);
+        }
+        .row-action-btn .ico { width: 14px; height: 14px; opacity: 1; }
+        .row-action-danger:hover {
+            color: var(--danger);
+            border-color: var(--danger);
+            background: rgba(224, 108, 117, 0.12);
         }
 
         .sidebar-header {
@@ -486,13 +576,21 @@
         .repo-grid.list-view {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 2px;
         }
 
         .repo-grid.list-view .repo-card {
             flex-direction: row;
             align-items: center;
-            padding: 12px 20px;
+            padding: 7px 16px;
+            border-radius: 5px;
+        }
+
+        .repo-grid.list-view .repo-card:hover {
+            transform: none;
+            box-shadow: none;
+            background: var(--bg-input);
+            border-color: var(--border-color);
         }
 
         .repo-grid.list-view .card-header {
@@ -942,17 +1040,17 @@
 
         .dash-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
-            gap: 12px;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 8px;
         }
 
         .stat-card {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
-            border-radius: 14px;
-            padding: 16px 14px;
+            border-radius: 6px;
+            padding: 10px 12px;
             cursor: pointer;
-            transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+            transition: border-color 0.15s, background 0.15s;
             position: relative;
             overflow: hidden;
         }
@@ -970,9 +1068,8 @@
         }
 
         .stat-card:hover {
-            transform: translateY(-3px);
             border-color: var(--accent-blue);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            background: var(--bg-input);
         }
 
         .stat-card:hover::before {
@@ -983,33 +1080,35 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 10px;
+            margin-bottom: 6px;
         }
 
         .stat-icon {
-            font-size: 20px;
-            width: 36px;
-            height: 36px;
+            font-size: 14px;
+            width: 26px;
+            height: 26px;
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 10px;
-            background: rgba(88, 166, 255, 0.1);
+            border-radius: 6px;
+            background: rgba(82, 139, 255, 0.12);
+            color: var(--accent-blue);
         }
+        .stat-icon .ico { width: 15px; height: 15px; opacity: 1; }
 
         .stat-value {
-            font-size: 28px;
-            font-weight: 800;
+            font-size: 22px;
+            font-weight: 700;
             color: var(--accent-blue);
             line-height: 1;
         }
 
         .stat-label {
-            font-size: 11px;
+            font-size: 10px;
             color: var(--text-secondary);
-            margin-top: 4px;
+            margin-top: 3px;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.4px;
             font-weight: 500;
         }
 
@@ -1273,6 +1372,55 @@
 </head>
 
 <body>
+    <!-- ===== Icon sprite (Lucide-style line icons) ===== -->
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+        <defs>
+            <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10h14V10"/></symbol>
+            <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+            <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5H9l2 2.5h8.5A1.5 1.5 0 0 1 21 9v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18Z"/></symbol>
+            <symbol id="i-fork" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M6 8.5v2A2.5 2.5 0 0 0 8.5 13h7A2.5 2.5 0 0 0 18 10.5v-2M12 13v2.5"/></symbol>
+            <symbol id="i-diff" viewBox="0 0 24 24"><path d="M12 3v6M9 6h6M5 18h14M9 21h6"/></symbol>
+            <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></symbol>
+            <symbol id="i-branch" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="7" r="2.5"/><path d="M6 8.5v7M18 9.5c0 4-6 2.5-6 6.5"/></symbol>
+            <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 2.5 15 0 18M12 3c-2.5 2.5-2.5 15 0 18"/></symbol>
+            <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+            <symbol id="i-scroll" viewBox="0 0 24 24"><path d="M6 4h11v13a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V6a2 2 0 0 1 2-2Z"/><path d="M17 4a2 2 0 0 1 2 2v2h-2"/><path d="M8 8h6M8 12h6"/></symbol>
+            <symbol id="i-warning" viewBox="0 0 24 24"><path d="M12 3 2.5 20h19Z"/><path d="M12 10v4M12 17h.01"/></symbol>
+            <symbol id="i-file" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6Z"/><path d="M14 3v4h4M9 13h6M9 17h6"/></symbol>
+            <symbol id="i-inbox" viewBox="0 0 24 24"><path d="M3 13 6 5h12l3 8v6H3Z"/><path d="M3 13h5l1.5 2.5h5L16 13h5"/></symbol>
+            <symbol id="i-box" viewBox="0 0 24 24"><path d="M3 7.5 12 3l9 4.5v9L12 21l-9-4.5Z"/><path d="M3 7.5 12 12l9-4.5M12 12v9"/></symbol>
+            <symbol id="i-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></symbol>
+            <symbol id="i-brain" viewBox="0 0 24 24"><path d="M9 4a3 3 0 0 0-3 3 3 3 0 0 0-1 5 3 3 0 0 0 1 5 3 3 0 0 0 3 3c1 0 2-.7 2-2V5c0-.8-.7-1-2-1Z"/><path d="M15 4a3 3 0 0 1 3 3 3 3 0 0 1 1 5 3 3 0 0 1-1 5 3 3 0 0 1-3 3c-1 0-2-.7-2-2V5c0-.8.7-1 2-1Z"/></symbol>
+            <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13M10 11v6M14 11v6"/></symbol>
+            <symbol id="i-bot" viewBox="0 0 24 24"><rect x="4" y="8" width="16" height="11" rx="2"/><path d="M12 4v4M8 13h.01M16 13h.01M9 16h6"/></symbol>
+            <symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M12 4l1.7 4.3L18 10l-4.3 1.7L12 16l-1.7-4.3L6 10l4.3-1.7ZM18 15l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8Z"/></symbol>
+            <symbol id="i-tag" viewBox="0 0 24 24"><path d="M3 12V5a2 2 0 0 1 2-2h7l9 9-9 9Z"/><circle cx="7.5" cy="7.5" r="1.3"/></symbol>
+            <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V4M4 20h16M8 20v-6M12 20V9M16 20v-9M20 20V6"/></symbol>
+            <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="m20 20-4-4"/></symbol>
+            <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></symbol>
+            <symbol id="i-drive" viewBox="0 0 24 24"><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M6 13 8 5h8l2 8M7 16.5h.01M11 16.5h6"/></symbol>
+            <symbol id="i-flame" viewBox="0 0 24 24"><path d="M12 3c1 4 5 5 5 9a5 5 0 0 1-10 0c0-2 1-3 2-4 .5 1 1 1.5 2 1.5C12 8 11 5 12 3Z"/></symbol>
+            <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v2.5M12 18.5V21M4.2 7l2.2 1.3M17.6 15.7 19.8 17M4.2 17l2.2-1.3M17.6 8.3 19.8 7M3 12h2.5M18.5 12H21"/></symbol>
+            <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 0 1 4 2c0 1.5-2 1.8-2 3M12 17h.01"/></symbol>
+            <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19"/></symbol>
+            <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 1 1 9.5 4 6.5 6.5 0 0 0 20 14.5Z"/></symbol>
+            <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14-4L4 9M4 5v4h4M4 13a8 8 0 0 0 14 4l2-2M20 19v-4h-4"/></symbol>
+            <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v11M7.5 10 12 14.5 16.5 10M5 20h14"/></symbol>
+            <symbol id="i-check" viewBox="0 0 24 24"><path d="M4 13 9 18 20 5"/></symbol>
+            <symbol id="i-cross" viewBox="0 0 24 24"><path d="M5 5 19 19M19 5 5 19"/></symbol>
+            <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></symbol>
+            <symbol id="i-rocket" viewBox="0 0 24 24"><path d="M12 3c1.5 3.5 4 3.5 5 9 .5 4-2 8-5 9-3-1-5.5-5-5-9 1-5.5 3.5-5.5 5-9Z"/><path d="M12 12a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/></symbol>
+            <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20C4 13 2 8 7 5c3-2 5 0 5 0s2-2 5 0c5 3 3 8-5 15Z"/></symbol>
+            <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3l2.5 6.5L21 10l-5 4.5L17.5 21 12 17l-5.5 4 1.5-6.5L3 10l6.5-.5Z"/></symbol>
+            <symbol id="i-bulb" viewBox="0 0 24 24"><path d="M9 18h6M9 21h6"/><path d="M14 4a6 6 0 0 0-6 6c0 2 1 3.5 2 5v1h6v-1c1-1.5 2-3 2-5a6 6 0 0 0-4-6Z"/></symbol>
+            <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.5 3.5-7 8-7s8 2.5 8 7"/></symbol>
+            <symbol id="i-chat" viewBox="0 0 24 24"><path d="M2 13V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H7l-5 5V13Z"/></symbol>
+            <symbol id="i-check-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12.5 11 15.5 16.5 9"/></symbol>
+            <symbol id="i-cross-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 9 15 15M15 9 9 15"/></symbol>
+            <symbol id="i-hourglass" viewBox="0 0 24 24"><path d="M6 3h12M6 21h12M6 3v4a6 6 0 0 0 6 6 6 6 0 0 0 6-6V3M6 21v-4a6 6 0 0 1 6-6 6 6 0 0 1 6 6v4"/></symbol>
+            <symbol id="i-command" viewBox="0 0 24 24"><path d="M8 8h8v8H8Z"/><path d="M8 16a4 4 0 1 1-4 4v-4h4ZM16 8a4 4 0 1 1 4-4v4h-4ZM8 8a4 4 0 1 0-4-4v4h4ZM16 16a4 4 0 1 0 4 4v-4h-4Z"/></symbol>
+        </defs>
+    </svg>
     <!-- Windows Title Bar -->
     <div class="win-titlebar">
         <div class="win-titlebar-title">
@@ -1297,7 +1445,7 @@
     <!-- Custom Confirm Dialog -->
     <div id="confirmDialog" class="confirm-overlay">
         <div class="confirm-box">
-            <div class="confirm-icon" id="confirmIcon">⚠️</div>
+            <div class="confirm-icon" id="confirmIcon"><svg class="ico"><use href="#i-warning"/></svg></div>
             <div class="confirm-title" id="confirmTitle">Confirm Action</div>
             <div class="confirm-message" id="confirmMessage">Are you sure?</div>
             <div class="confirm-buttons">
@@ -1319,25 +1467,25 @@
                     </div>
                     <div class="nav-category-body">
                         <div class="nav-item active" id="navDashboard" onclick="showView('dashboard')">
-                            <span>🏠 Dashboard</span>
+                            <span><svg class="ico"><use href="#i-home"/></svg>Dashboard</span>
                         </div>
                         <div class="nav-item" id="navAddProject" onclick="showView('addProject')">
-                            <span>➕ Add Project</span>
+                            <span><svg class="ico"><use href="#i-plus"/></svg>Add Project</span>
                         </div>
                         <div class="nav-item" id="navRepos" onclick="showView('repos'); applyFilter('all')">
-                            <span>📁 Repositories</span>
+                            <span><svg class="ico"><use href="#i-folder"/></svg>Repositories</span>
                             <span class="nav-badge" id="countAll">0</span>
                         </div>
                         <div class="nav-item" id="navForkSync" onclick="showView('forkSync')">
-                            <span>🔀 Fork Sync</span>
+                            <span><svg class="ico"><use href="#i-fork"/></svg>Fork Sync</span>
                             <span class="nav-badge" id="countFork">0</span>
                         </div>
                         <div class="nav-item" id="navLocalChanges" onclick="showView('localChanges')">
-                            <span>📡 Local Changes</span>
+                            <span><svg class="ico"><use href="#i-diff"/></svg>Local Changes</span>
                             <span class="nav-badge" id="countLocalChanges" style="background: var(--accent-yellow); color: #000;">0</span>
                         </div>
                         <div class="nav-item" id="navHistory" onclick="showView('history')">
-                            <span>📋 History</span>
+                            <span><svg class="ico"><use href="#i-list"/></svg>History</span>
                         </div>
                     </div>
                 </div>
@@ -1352,15 +1500,15 @@
                     </div>
                     <div class="nav-category-body">
                         <div class="nav-item" id="navAll" onclick="applyFilter('all')">
-                            <span>📁 All</span>
+                            <span><svg class="ico"><use href="#i-folder"/></svg>All</span>
                             <span class="nav-badge" id="countAllSub">0</span>
                         </div>
                         <div class="nav-item" id="navSource" onclick="applyFilter('source')">
-                            <span>🌿 Sources</span>
+                            <span><svg class="ico"><use href="#i-branch"/></svg>Sources</span>
                             <span class="nav-badge" id="countSource">0</span>
                         </div>
                         <div class="nav-item" id="navForkFilter" onclick="applyFilter('fork')">
-                            <span>🔀 Forks</span>
+                            <span><svg class="ico"><use href="#i-fork"/></svg>Forks</span>
                             <span class="nav-badge" id="countForkSub">0</span>
                         </div>
                     </div>
@@ -1373,11 +1521,11 @@
                     </div>
                     <div class="nav-category-body">
                         <div class="nav-item" onclick="applyAdvancedFilter('public')">
-                            <span>🌍 Public</span>
+                            <span><svg class="ico"><use href="#i-globe"/></svg>Public</span>
                             <span class="nav-badge" id="countPublicFilter">0</span>
                         </div>
                         <div class="nav-item" onclick="applyAdvancedFilter('private')">
-                            <span>🔐 Private</span>
+                            <span><svg class="ico"><use href="#i-lock"/></svg>Private</span>
                             <span class="nav-badge" id="countPrivateFilter">0</span>
                         </div>
                     </div>
@@ -1390,11 +1538,11 @@
                     </div>
                     <div class="nav-category-body">
                         <div class="nav-item" onclick="applyAdvancedFilter('has-license')">
-                            <span>📜 Has License</span>
+                            <span><svg class="ico"><use href="#i-scroll"/></svg>Has License</span>
                             <span class="nav-badge" id="countHasLicense">0</span>
                         </div>
                         <div class="nav-item" onclick="applyAdvancedFilter('no-license')">
-                            <span>⚠️ No License</span>
+                            <span><svg class="ico"><use href="#i-warning"/></svg>No License</span>
                             <span class="nav-badge" id="countNoLicense">0</span>
                         </div>
                     </div>
@@ -1407,19 +1555,19 @@
                     </div>
                     <div class="nav-category-body">
                         <div class="nav-item" onclick="applyAdvancedFilter('has-description')">
-                            <span>📝 Has Description</span>
+                            <span><svg class="ico"><use href="#i-file"/></svg>Has Description</span>
                             <span class="nav-badge" id="countHasDesc">0</span>
                         </div>
                         <div class="nav-item" onclick="applyAdvancedFilter('no-description')">
-                            <span>📭 No Description</span>
+                            <span><svg class="ico"><use href="#i-inbox"/></svg>No Description</span>
                             <span class="nav-badge" id="countNoDesc">0</span>
                         </div>
                         <div class="nav-item" onclick="applyAdvancedFilter('archived')">
-                            <span>📦 Archived</span>
+                            <span><svg class="ico"><use href="#i-box"/></svg>Archived</span>
                             <span class="nav-badge" id="countArchived">0</span>
                         </div>
                         <div class="nav-item" onclick="applyAdvancedFilter('empty')">
-                            <span>🕳️ Empty (0 KB)</span>
+                            <span><svg class="ico"><use href="#i-circle"/></svg>Empty (0 KB)</span>
                             <span class="nav-badge" id="countEmpty">0</span>
                         </div>
                     </div>
@@ -1445,10 +1593,10 @@
                     </div>
                     <div class="nav-category-body">
                         <div class="nav-item" onclick="startAIRename()">
-                            <span>🧠 AI Smart Rename</span>
+                            <span><svg class="ico"><use href="#i-brain"/></svg>AI Smart Rename</span>
                         </div>
                         <div class="nav-item" onclick="deleteSelected()" style="color: var(--danger);">
-                            <span>🗑️ Delete Selected</span>
+                            <span><svg class="ico"><use href="#i-trash"/></svg>Delete Selected</span>
                         </div>
                     </div>
                 </div>
@@ -1463,16 +1611,16 @@
                     </div>
                     <div class="nav-category-body">
                         <div class="nav-item" onclick="startAIDescription()">
-                            <span>🤖 AI Description</span>
+                            <span><svg class="ico"><use href="#i-bot"/></svg>AI Description</span>
                         </div>
                         <div class="nav-item" onclick="startAIReadme()">
-                            <span>📝 AI README Creator</span>
+                            <span><svg class="ico"><use href="#i-file"/></svg>AI README Creator</span>
                         </div>
                         <div class="nav-item" onclick="showSetupInfo()">
-                            <span>📦 Setup / Clone Info</span>
+                            <span><svg class="ico"><use href="#i-box"/></svg>Setup / Clone Info</span>
                         </div>
                         <div class="nav-item" onclick="startAICommitFixer()">
-                            <span>✨ AI Commit Fixer</span>
+                            <span><svg class="ico"><use href="#i-sparkles"/></svg>AI Commit Fixer</span>
                         </div>
                     </div>
                 </div>
@@ -1487,13 +1635,13 @@
                     </div>
                     <div class="nav-category-body">
                         <div class="nav-item" onclick="openVisibilityModal()">
-                            <span>🔐 Change Visibility</span>
+                            <span><svg class="ico"><use href="#i-lock"/></svg>Change Visibility</span>
                         </div>
                         <div class="nav-item" onclick="openTopicsModal()">
-                            <span>🏷️ Manage Topics</span>
+                            <span><svg class="ico"><use href="#i-tag"/></svg>Manage Topics</span>
                         </div>
                         <div class="nav-item" onclick="openLicenseModal()">
-                            <span>📜 Add License</span>
+                            <span><svg class="ico"><use href="#i-scroll"/></svg>Add License</span>
                         </div>
                     </div>
                 </div>
@@ -1508,19 +1656,19 @@
                     </div>
                     <div class="nav-category-body">
                         <div class="nav-item" onclick="openAnalysisModal()">
-                            <span>📊 Repo Analysis</span>
+                            <span><svg class="ico"><use href="#i-chart"/></svg>Repo Analysis</span>
                         </div>
                         <div class="nav-item" onclick="openRepoAnalyzerModal()">
-                            <span>🔍 Repo Inspector</span>
+                            <span><svg class="ico"><use href="#i-search"/></svg>Repo Inspector</span>
                         </div>
                         <div class="nav-item" onclick="showView('repos'); filterStaleRepos()">
-                            <span>🕐 Stale Repos</span>
+                            <span><svg class="ico"><use href="#i-clock"/></svg>Stale Repos</span>
                         </div>
                         <div class="nav-item" onclick="showView('repos'); filterLargeRepos()">
-                            <span>💾 Large Repos</span>
+                            <span><svg class="ico"><use href="#i-drive"/></svg>Large Repos</span>
                         </div>
                         <div class="nav-item" onclick="showView('repos'); filterUnchangedForks()">
-                            <span>🍴 Unused Forks</span>
+                            <span><svg class="ico"><use href="#i-fork"/></svg>Unused Forks</span>
                         </div>
                     </div>
                 </div>
@@ -1535,13 +1683,13 @@
                     </div>
                     <div class="nav-category-body">
                         <div class="nav-item" id="navExploreSearch" onclick="showView('exploreSearch')">
-                            <span>🔍 Search</span>
+                            <span><svg class="ico"><use href="#i-search"/></svg>Search</span>
                         </div>
                         <div class="nav-item" id="navExploreTrending" onclick="showView('exploreTrending')">
-                            <span>🔥 Trending</span>
+                            <span><svg class="ico"><use href="#i-flame"/></svg>Trending</span>
                         </div>
                         <div class="nav-item" id="navExploreTopics" onclick="showView('exploreTopics')">
-                            <span>🏷️ Topics</span>
+                            <span><svg class="ico"><use href="#i-tag"/></svg>Topics</span>
                         </div>
                     </div>
                 </div>
@@ -1550,18 +1698,18 @@
 
         <div class="sidebar-footer">
             <div class="nav-item" onclick="toggleTheme()">
-                <span id="themeToggleLabel">☀️ Light Mode</span>
+                <span id="themeToggleLabel"><svg class="ico"><use href="#i-sun"/></svg>Light Mode</span>
             </div>
             <div class="nav-item" onclick="openSettings()">
-                <span>⚙️ Settings</span>
+                <span><svg class="ico"><use href="#i-settings"/></svg>Settings</span>
             </div>
             <div class="nav-item" onclick="document.getElementById('helpModal').style.display='flex'">
-                <span>❓ Help</span>
+                <span><svg class="ico"><use href="#i-help"/></svg>Help</span>
             </div>
             <div
                 style="margin-top: 15px; font-size: 11px; color: #666; text-align: center; display: flex; flex-direction: column; gap: 4px; align-items: center;">
                 <div style="display: flex; align-items: center; gap: 6px; opacity: 0.8;">
-                    <span>Made with ❤️ by <strong style="color:var(--text-primary)">palamut62</strong></span>
+                    <span>Made with <svg class="ico" style="width:12px;height:12px;vertical-align:middle;"><use href="#i-heart"/></svg> by <strong style="color:var(--text-primary)">palamut62</strong></span>
                     <div style="cursor: pointer; display: flex; align-items: center; transition: opacity 0.2s;"
                         onclick="window.api.openExternal('https://github.com/palamut62/github-repo-cleaner-ai')"
                         title="View Source on GitHub">
@@ -1586,12 +1734,12 @@
                 <div
                     style="display: flex; background: var(--bg-input); border-radius: 6px; border: 1px solid var(--border-color); margin-right: 10px;">
                     <button class="view-btn active" id="btnViewList" onclick="switchView('list')"
-                        style="background:none; border:none; padding: 6px 10px; cursor: pointer; border-right: 1px solid var(--border-color);">
-                        📄
+                        style="background:none; border:none; padding: 6px 10px; cursor: pointer; border-right: 1px solid var(--border-color); color: var(--text-secondary);">
+                        <svg class="ico"><use href="#i-list"/></svg>
                     </button>
                     <button class="view-btn" id="btnViewGrid" onclick="switchView('grid')"
-                        style="background:none; border:none; padding: 6px 10px; cursor: pointer;">
-                        ⊞
+                        style="background:none; border:none; padding: 6px 10px; cursor: pointer; color: var(--text-secondary);">
+                        <svg class="ico"><use href="#i-box"/></svg>
                     </button>
                 </div>
                 <div
@@ -1602,7 +1750,7 @@
                         style="font-size: 11px; color: var(--text-secondary); cursor: pointer; user-select: none;">Select
                         All</label>
                 </div>
-                <button class="btn-primary" onclick="loadRepos()">🔄 Reload</button>
+                <button class="btn-primary" onclick="loadRepos()"><svg class="ico" style="vertical-align:-3px;margin-right:5px"><use href="#i-refresh"/></svg>Reload</button>
                 <select class="input-dark" id="sortSelect" onchange="changeSort()">
                     <option value="newest">Newest</option>
                     <option value="oldest">Oldest</option>
@@ -1627,7 +1775,7 @@
                     <p id="dashWelcomeSub">Loading your GitHub overview...</p>
                 </div>
                 <div style="margin-left:auto; display:flex; gap:8px;">
-                    <button class="btn-dark" style="padding: 6px 14px; font-size: 12px;" onclick="loadDashboard()">🔄 Refresh</button>
+                    <button class="btn-dark" style="padding: 6px 14px; font-size: 12px;" onclick="loadDashboard()"><svg class="ico" style="vertical-align:-3px;margin-right:5px"><use href="#i-refresh"/></svg>Refresh</button>
                 </div>
             </div>
 
@@ -1635,59 +1783,66 @@
             <div class="dash-grid" id="dashStatsGrid">
                 <div class="stat-card" onclick="showView('repos'); applyFilter('all')">
                     <div class="stat-card-header">
-                        <div class="stat-icon">📁</div>
+                        <div class="stat-icon"><svg class="ico"><use href="#i-folder"/></svg></div>
                     </div>
                     <div class="stat-value" id="dashTotalRepos">—</div>
                     <div class="stat-label">Total Repos</div>
                 </div>
                 <div class="stat-card" onclick="showView('repos'); applyFilter('source')">
                     <div class="stat-card-header">
-                        <div class="stat-icon" style="background:rgba(63,185,80,0.12);">🌿</div>
+                        <div class="stat-icon" style="background:rgba(152,195,121,0.14); color:var(--accent-green);"><svg class="ico"><use href="#i-branch"/></svg></div>
                     </div>
                     <div class="stat-value" style="color:var(--accent-green);" id="dashSources">—</div>
                     <div class="stat-label">Sources</div>
                 </div>
                 <div class="stat-card" onclick="showView('forkSync')">
                     <div class="stat-card-header">
-                        <div class="stat-icon" style="background:rgba(139,92,246,0.12);">🔀</div>
+                        <div class="stat-icon" style="background:rgba(198,120,221,0.14); color:var(--accent-purple);"><svg class="ico"><use href="#i-fork"/></svg></div>
                     </div>
                     <div class="stat-value" style="color:var(--accent-purple);" id="dashForks">—</div>
                     <div class="stat-label">Forks</div>
                 </div>
                 <div class="stat-card" onclick="showView('repos'); filterByVisibility('private')">
                     <div class="stat-card-header">
-                        <div class="stat-icon" style="background:rgba(210,153,34,0.12);">🔐</div>
+                        <div class="stat-icon" style="background:rgba(229,192,123,0.14); color:var(--accent-yellow);"><svg class="ico"><use href="#i-lock"/></svg></div>
                     </div>
                     <div class="stat-value" style="color:var(--accent-yellow);" id="dashPrivate">—</div>
                     <div class="stat-label">Private</div>
                 </div>
                 <div class="stat-card" onclick="showView('repos'); filterByVisibility('public')">
                     <div class="stat-card-header">
-                        <div class="stat-icon" style="background:rgba(88,166,255,0.12);">🌍</div>
+                        <div class="stat-icon"><svg class="ico"><use href="#i-globe"/></svg></div>
                     </div>
                     <div class="stat-value" id="dashPublic">—</div>
                     <div class="stat-label">Public</div>
                 </div>
                 <div class="stat-card" onclick="showView('repos'); filterStaleRepos()">
                     <div class="stat-card-header">
-                        <div class="stat-icon" style="background:rgba(248,81,73,0.12);">🕐</div>
+                        <div class="stat-icon" style="background:rgba(224,108,117,0.14); color:var(--danger);"><svg class="ico"><use href="#i-clock"/></svg></div>
                     </div>
                     <div class="stat-value" style="color:var(--danger);" id="dashStale">—</div>
                     <div class="stat-label">Stale (&gt;6mo)</div>
                 </div>
                 <div class="stat-card" style="cursor:default;">
                     <div class="stat-card-header">
-                        <div class="stat-icon" style="background:rgba(210,153,34,0.12);">⭐</div>
+                        <div class="stat-icon" style="background:rgba(229,192,123,0.14); color:var(--accent-yellow);"><svg class="ico"><use href="#i-flame"/></svg></div>
                     </div>
                     <div class="stat-value" style="color:var(--accent-yellow);" id="dashStars">—</div>
                     <div class="stat-label">Total Stars</div>
                 </div>
                 <div class="stat-card" style="cursor:default;">
                     <div class="stat-card-header">
-                        <div class="stat-icon" style="background:rgba(163,113,247,0.12);">💾</div>
+                        <div class="stat-icon" style="background:rgba(198,120,221,0.14); color:var(--accent-purple);"><svg class="ico"><use href="#i-drive"/></svg></div>
                     </div>
                     <div class="stat-value" style="color:var(--accent-purple); font-size:22px;" id="dashSize">—</div>
                     <div class="stat-label">Total Size</div>
+                </div>
+                <div class="stat-card" id="cloneStatsCard" onclick="loadCloneStats(true)" title="Last 14 days · GitHub Traffic API">
+                    <div class="stat-card-header">
+                        <div class="stat-icon"><svg class="ico"><use href="#i-download"/></svg></div>
+                    </div>
+                    <div class="stat-value" id="dashClones">—</div>
+                    <div class="stat-label" id="dashClonesLabel">Clones (14d)</div>
                 </div>
             </div>
 
@@ -1696,23 +1851,23 @@
                 <div class="dash-panel-title">Quick Actions</div>
                 <div class="quick-action-grid">
                     <div class="quick-action-card" onclick="showView('addProject')">
-                        <div class="quick-action-icon">➕</div>
+                        <div class="quick-action-icon"><svg class="ico"><use href="#i-plus"/></svg></div>
                         <div class="quick-action-label">Add Project</div>
                     </div>
                     <div class="quick-action-card" onclick="showView('repos'); loadRepos()">
-                        <div class="quick-action-icon">📁</div>
+                        <div class="quick-action-icon"><svg class="ico"><use href="#i-folder"/></svg></div>
                         <div class="quick-action-label">View Repos</div>
                     </div>
                     <div class="quick-action-card" onclick="showView('forkSync'); loadForkSyncView()">
-                        <div class="quick-action-icon">🔀</div>
+                        <div class="quick-action-icon"><svg class="ico"><use href="#i-fork"/></svg></div>
                         <div class="quick-action-label">Fork Sync</div>
                     </div>
                     <div class="quick-action-card" onclick="showView('localChanges')">
-                        <div class="quick-action-icon">📡</div>
+                        <div class="quick-action-icon"><svg class="ico"><use href="#i-diff"/></svg></div>
                         <div class="quick-action-label">Local Changes</div>
                     </div>
                     <div class="quick-action-card" onclick="showView('exploreSearch')">
-                        <div class="quick-action-icon">🔍</div>
+                        <div class="quick-action-icon"><svg class="ico"><use href="#i-search"/></svg></div>
                         <div class="quick-action-label">Explore</div>
                     </div>
                 </div>
@@ -1747,11 +1902,11 @@
         <div id="view-addProject" class="view-section" style="display:none; flex-direction:column; flex:1; overflow:hidden; padding: 0 30px 20px;">
             <!-- Toolbar -->
             <div style="display: flex; gap: 10px; align-items: center; padding-bottom: 12px; border-bottom: 1px solid var(--border-color); flex-shrink: 0; flex-wrap: wrap;">
-                <button class="btn-primary" onclick="selectProjectFolders(false)">📂 Select Folder</button>
-                <button class="btn-primary" style="background: var(--accent-blue);" onclick="selectProjectFolders(true)">📂 Select Multiple</button>
+                <button class="btn-primary" onclick="selectProjectFolders(false)">Select Folder</button>
+                <button class="btn-primary" style="background: var(--accent-blue);" onclick="selectProjectFolders(true)">Select Multiple</button>
                 <div style="flex:1;"></div>
                 <span style="font-size: 12px; color: var(--text-secondary);" id="addProjStatus"></span>
-                <button class="btn-primary" style="background: var(--accent-green); padding: 8px 20px;" id="btnCreatePush" onclick="startCreateAndPush()" disabled>🚀 Create &amp; Push</button>
+                <button class="btn-primary" style="background: var(--accent-green); padding: 8px 20px;" id="btnCreatePush" onclick="startCreateAndPush()" disabled>Create &amp; Push</button>
             </div>
 
             <!-- Commit Template Bar -->
@@ -1768,7 +1923,7 @@
                     style="flex:1; min-width:220px; display:none;"
                     oninput="syncCommitTemplateToRows()">
                 <span id="commitTemplatePreview" style="font-size:11px; color:var(--text-secondary); font-style:italic;"></span>
-                <button class="btn-dark" style="font-size:11px; padding:5px 10px; white-space:nowrap;" onclick="saveCurrentCommitTemplate()">💾 Save Default</button>
+                <button class="btn-dark" style="font-size:11px; padding:5px 10px; white-space:nowrap;" onclick="saveCurrentCommitTemplate()">Save Default</button>
             </div>
 
             <!-- Folder Table -->
@@ -1799,7 +1954,7 @@
                 <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
                     <span>Progress Log</span>
                     <div style="display:flex; gap:8px;">
-                        <button onclick="copyPublishLog()" style="background:none; border:none; color:var(--text-secondary); cursor:pointer; font-size:11px;" title="Copy logs">📋 Copy</button>
+                        <button onclick="copyPublishLog()" style="background:none; border:none; color:var(--text-secondary); cursor:pointer; font-size:11px;" title="Copy logs">Copy</button>
                         <button onclick="document.getElementById('publishLog').innerHTML=''" style="background:none; border:none; color:var(--text-secondary); cursor:pointer; font-size:11px;">Clear</button>
                     </div>
                 </div>
@@ -1812,13 +1967,13 @@
             <!-- Warning Banner -->
             <div id="warnBanner"
                 style="margin: 0 30px 10px 30px; padding: 12px 16px; background: linear-gradient(135deg, rgba(255, 193, 7, 0.15), rgba(255, 152, 0, 0.1)); border: 1px solid rgba(255, 193, 7, 0.3); border-radius: 10px; display: flex; align-items: center; gap: 12px; flex-shrink:0;">
-                <span style="font-size: 20px;">⚠️</span>
+                <span style="font-size: 20px;"><svg class="ico" style="width:20px;height:20px;"><use href="#i-warning"/></svg></span>
                 <div style="flex: 1;">
                     <div style="font-weight: 600; font-size: 12px; color: var(--accent-yellow); margin-bottom: 2px;">Warning!</div>
                     <div style="font-size: 11px; color: var(--text-secondary); line-height: 1.4;">This app can permanently delete or modify repositories. Deleted repos cannot be recovered!</div>
                 </div>
                 <button onclick="document.getElementById('warnBanner').style.display='none'"
-                    style="background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 4px; font-size: 16px; opacity: 0.6;">✕</button>
+                    style="background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 4px; font-size: 16px; opacity: 0.6;"><svg class="ico"><use href="#i-cross"/></svg></button>
             </div>
 
             <div id="repoGrid" class="repo-grid">
@@ -1839,8 +1994,8 @@
         <div id="view-forkSync" class="view-section" style="display:none; flex-direction:column; flex:1; overflow:hidden; padding: 0 30px 20px;">
             <!-- Toolbar -->
             <div style="display: flex; gap: 10px; align-items: center; padding-bottom: 16px; border-bottom: 1px solid var(--border-color); flex-shrink: 0;">
-                <button class="btn-primary" onclick="loadForkSyncView()">🔄 Refresh Forks</button>
-                <button class="btn-primary" style="background: #8b5cf6;" id="btnSyncAll" onclick="syncSelectedForks()" disabled>🔀 Sync Selected</button>
+                <button class="btn-primary" onclick="loadForkSyncView()">Refresh Forks</button>
+                <button class="btn-primary" style="background: #8b5cf6;" id="btnSyncAll" onclick="syncSelectedForks()" disabled>Sync Selected</button>
                 <div style="flex:1;"></div>
                 <span id="forkSyncStatus" style="font-size: 12px; color: var(--text-secondary);"></span>
             </div>
@@ -1871,8 +2026,8 @@
         <!-- ═══ LOCAL CHANGES VIEW ════════════════════════════════════════════ -->
         <div id="view-localChanges" class="view-section" style="display:none; flex-direction:column; flex:1; overflow:hidden; padding: 0 30px 20px;">
             <div style="display: flex; gap: 10px; align-items: center; padding-bottom: 16px; border-bottom: 1px solid var(--border-color); flex-shrink: 0;">
-                <button class="btn-primary" onclick="loadLocalChangesView()">🔄 Scan Projects</button>
-                <button class="btn-primary" style="background: var(--accent-green);" id="btnPushAll" onclick="pushAllChanged()" disabled>🚀 Push All Changed</button>
+                <button class="btn-primary" onclick="loadLocalChangesView()">Scan Projects</button>
+                <button class="btn-primary" style="background: var(--accent-green);" id="btnPushAll" onclick="pushAllChanged()" disabled>Push All Changed</button>
                 <div style="flex:1;"></div>
                 <span id="localChangesStatus" style="font-size: 12px; color: var(--text-secondary);"></span>
             </div>
@@ -1901,8 +2056,8 @@
         <div id="view-history" class="view-section" style="display:none; flex-direction:column; flex:1; overflow:hidden; padding: 0 30px 20px;">
             <!-- Toolbar -->
             <div style="display: flex; gap: 10px; align-items: center; padding-bottom: 16px; border-bottom: 1px solid var(--border-color); flex-shrink: 0;">
-                <button class="btn-primary" onclick="loadHistoryView()">🔄 Refresh</button>
-                <button class="btn-dark" style="color: var(--danger); border-color: var(--danger);" onclick="confirmClearHistory()">🗑️ Clear History</button>
+                <button class="btn-primary" onclick="loadHistoryView()">Refresh</button>
+                <button class="btn-dark" style="color: var(--danger); border-color: var(--danger);" onclick="confirmClearHistory()">Clear History</button>
             </div>
 
             <div style="flex: 1; overflow-y: auto; margin-top: 16px;" id="historyContent">
@@ -1945,7 +2100,7 @@
                 <input type="number" id="exploreSearchMinStars" placeholder="Min stars" min="0"
                     style="width:100px; padding:8px 12px; border-radius:6px; border:1px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:13px;">
                 <button onclick="searchExploreRepos()" class="btn-primary" style="padding:8px 16px; border-radius:6px; font-size:13px; cursor:pointer; border:none;">
-                    🔍 Search
+                    Search
                 </button>
             </div>
             <div id="exploreSearchResults" style="display:flex; flex-direction:column; gap:8px; flex:1; overflow-y:auto;"></div>
@@ -2017,12 +2172,12 @@
             </div>
             <div class="statusbar-separator"></div>
             <div class="statusbar-item" id="statusbarUser" style="display:none;">
-                <span>👤</span>
+                <span><svg class="ico"><use href="#i-user"/></svg></span>
                 <span id="statusbarUsername">—</span>
             </div>
             <div class="statusbar-separator" id="statusbarSep2" style="display:none;"></div>
             <div class="statusbar-item" id="statusbarRepoCount" style="display:none;">
-                <span>📁</span>
+                <span><svg class="ico"><use href="#i-folder"/></svg></span>
                 <span id="statusbarRepos">0 repos</span>
             </div>
             <div class="statusbar-right">
@@ -2043,7 +2198,7 @@
     <!-- ═══════ EXPLORE: REPO DETAIL MODAL ═══════ -->
     <div id="exploreDetailModal" class="modal-overlay" style="display:none;">
         <div class="modal-box" style="position:relative; padding-top:36px; max-width:700px; width:90%; max-height:85vh; overflow-y:auto;">
-            <div class="modal-close-btn" onclick="closeExploreDetailModal()" title="Close">✕</div>
+            <div class="modal-close-btn" onclick="closeExploreDetailModal()" title="Close"><svg class="ico"><use href="#i-cross"/></svg></div>
             <h3 id="exploreDetailTitle" style="margin-top:0; margin-bottom:16px; color:var(--accent-blue); font-size:18px;"></h3>
             <div id="exploreDetailBody" style="display:flex; flex-direction:column; gap:16px;">
                 <div style="text-align:center; padding:30px; color:var(--text-secondary);">Loading...</div>
@@ -2055,7 +2210,7 @@
     <div id="settingsModal" class="modal-overlay">
         <div class="modal-box" style="position: relative; padding-top: 36px; max-width: 440px; width: 88%;">
             <div onclick="document.getElementById('settingsModal').style.display='none'"
-                class="modal-close-btn" title="Close">✕</div>
+                class="modal-close-btn" title="Close"><svg class="ico"><use href="#i-cross"/></svg></div>
             <h3 style="margin-top: 0; margin-bottom: 12px; font-size: 14px;">Settings</h3>
 
             <!-- Tabs -->
@@ -2157,7 +2312,7 @@
         <div class="modal-box"
             style="max-width: 650px; font-size: 12px; line-height: 1.6; position: relative; padding-top: 36px;">
             <div onclick="document.getElementById('helpModal').style.display='none'"
-                class="modal-close-btn" title="Close">✕</div>
+                class="modal-close-btn" title="Close"><svg class="ico"><use href="#i-cross"/></svg></div>
             <h3 style="margin: 0 0 16px 0; color: var(--accent-blue); font-size: 15px;">User Guide</h3>
 
             <div style="max-height: 450px; overflow-y: auto; padding-right: 8px;">
@@ -2237,7 +2392,7 @@
                 </div>
 
                 <div style="background: var(--bg-body); border-radius: 6px; padding: 12px; border: 1px solid rgba(255,165,0,0.3);">
-                    <h4 style="margin: 0 0 8px 0; color: var(--accent-yellow); font-size: 12px;">⚠️ GitHub Token Permissions (Scopes)</h4>
+                    <h4 style="margin: 0 0 8px 0; color: var(--accent-yellow); font-size: 12px;"><svg class="ico"><use href="#i-warning"/></svg> GitHub Token Permissions (Scopes)</h4>
                     <p style="margin: 0 0 8px 0; color: var(--text-secondary);">
                         Your GitHub Personal Access Token must have the correct scopes for each feature to work:
                     </p>
@@ -2260,7 +2415,7 @@
                         </tbody>
                     </table>
                     <p style="margin: 8px 0 0 0; color: var(--accent-yellow); font-size: 11px;">
-                        💡 <strong>Tip:</strong> If you get "Permission denied" errors, go to
+                        <svg class="ico" style="width:14px;height:14px;vertical-align:middle;"><use href="#i-bulb"/></svg> <strong>Tip:</strong> If you get "Permission denied" errors, go to
                         <strong>GitHub → Settings → Developer settings → Personal access tokens</strong>
                         and make sure the <code>repo</code> scope (Full control of private repositories) is checked.
                     </p>
@@ -2275,7 +2430,7 @@
         <div class="modal-box"
             style="max-width: 900px; height: 80%; display: flex; flex-direction: column; position: relative; padding-top: 36px;">
             <div onclick="document.getElementById('renameModal').style.display='none'"
-                class="modal-close-btn" title="Close">✕</div>
+                class="modal-close-btn" title="Close"><svg class="ico"><use href="#i-cross"/></svg></div>
             <h3 style="margin: 0 0 10px 0; color: var(--accent-blue);">AI Suggestions</h3>
             <div
                 style="flex: 1; overflow-y: auto; background: var(--bg-body); border-radius: 8px; padding: 10px; margin-bottom: 10px;">
@@ -2300,7 +2455,7 @@
     <div id="customModal" class="modal-overlay">
         <div class="modal-box" style="position: relative; padding-top: 36px;">
             <div onclick="document.getElementById('customModal').style.display='none'"
-                class="modal-close-btn" title="Close">✕</div>
+                class="modal-close-btn" title="Close"><svg class="ico"><use href="#i-cross"/></svg></div>
             <h3 id="modalTitle">Title</h3>
             <div id="modalContent" style="margin-bottom: 20px;">Content</div>
             <button class="btn-primary"
@@ -2313,7 +2468,7 @@
         <div class="modal-box"
             style="max-width: 800px; height: 70%; display: flex; flex-direction: column; position: relative; padding-top: 36px;">
             <div onclick="document.getElementById('descriptionModal').style.display='none'"
-                class="modal-close-btn" title="Close">✕</div>
+                class="modal-close-btn" title="Close"><svg class="ico"><use href="#i-cross"/></svg></div>
             <h3 style="margin: 0 0 10px 0; color: var(--accent-blue);">AI Description Generator</h3>
             <p style="color: var(--text-secondary); font-size: 12px; margin-bottom: 15px;">
                 AI will analyze the README and suggest a professional description for each selected repository.
@@ -2343,7 +2498,7 @@
         <div class="modal-box"
             style="max-width: 900px; height: 85%; display: flex; flex-direction: column; position: relative; padding-top: 36px;">
             <div onclick="document.getElementById('readmeModal').style.display='none'"
-                class="modal-close-btn" title="Close">✕</div>
+                class="modal-close-btn" title="Close"><svg class="ico"><use href="#i-cross"/></svg></div>
             <h3 style="margin: 0 0 10px 0; color: var(--accent-green);">AI README Creator</h3>
             <p style="color: var(--text-secondary); font-size: 12px; margin-bottom: 10px;">
                 AI will analyze the repository files and generate a professional README.md
@@ -2365,7 +2520,7 @@
     <div id="setupModal" class="modal-overlay">
         <div class="modal-box" style="max-width: 700px; position: relative; padding-top: 36px;">
             <div onclick="document.getElementById('setupModal').style.display='none'"
-                class="modal-close-btn" title="Close">✕</div>
+                class="modal-close-btn" title="Close"><svg class="ico"><use href="#i-cross"/></svg></div>
             <h3 style="margin: 0 0 15px 0; color: var(--accent-yellow);">Setup / Clone Instructions</h3>
             <div id="setupContent" style="color: var(--text-secondary); font-size: 13px;">
                 <p>Select a repository first.</p>
@@ -2378,7 +2533,7 @@
         <div class="modal-box"
             style="max-width: 520px; max-height: 85%; display: flex; flex-direction: column; padding: 16px; position: relative;">
             <div onclick="document.getElementById('repoDetailModal').style.display='none'"
-                class="modal-close-btn" title="Close">✕</div>
+                class="modal-close-btn" title="Close"><svg class="ico"><use href="#i-cross"/></svg></div>
             <div id="repoDetailContent" style="flex: 1; overflow-y: auto;">
                 <p style="color: var(--text-secondary);">Loading...</p>
             </div>
@@ -2389,7 +2544,7 @@
     <div id="visibilityModal" class="modal-overlay">
         <div class="modal-box" style="max-width: 500px; position: relative; padding-top: 36px;">
             <div onclick="document.getElementById('visibilityModal').style.display='none'"
-                class="modal-close-btn" title="Close">✕</div>
+                class="modal-close-btn" title="Close"><svg class="ico"><use href="#i-cross"/></svg></div>
             <h3 style="margin: 0 0 15px 0; color: var(--accent-blue);">Change Visibility</h3>
             <p style="color: var(--text-secondary); font-size: 12px; margin-bottom: 15px;">
                 Change the visibility of selected repositories.
@@ -2416,7 +2571,7 @@
     <div id="topicsModal" class="modal-overlay">
         <div class="modal-box" style="max-width: 600px; position: relative; padding-top: 36px;">
             <div onclick="document.getElementById('topicsModal').style.display='none'"
-                class="modal-close-btn" title="Close">✕</div>
+                class="modal-close-btn" title="Close"><svg class="ico"><use href="#i-cross"/></svg></div>
             <h3 style="margin: 0 0 15px 0; color: var(--accent-yellow);">Manage Topics</h3>
             <p style="color: var(--text-secondary); font-size: 12px; margin-bottom: 15px;">
                 Add or remove topics from selected repositories. Topics help categorize and discover repositories.
@@ -2467,7 +2622,7 @@
     <div id="licenseModal" class="modal-overlay">
         <div class="modal-box" style="max-width: 500px; position: relative; padding-top: 36px;">
             <div onclick="document.getElementById('licenseModal').style.display='none'"
-                class="modal-close-btn" title="Close">✕</div>
+                class="modal-close-btn" title="Close"><svg class="ico"><use href="#i-cross"/></svg></div>
             <h3 style="margin: 0 0 15px 0; color: var(--accent-green);">Add License</h3>
             <p style="color: var(--text-secondary); font-size: 12px; margin-bottom: 15px;">
                 Add a license file to selected repositories. This helps others understand how they can use your code.
@@ -2501,7 +2656,7 @@
         <div class="modal-box"
             style="max-width: 900px; max-height: 90%; display: flex; flex-direction: column; position: relative; padding-top: 36px;">
             <div onclick="document.getElementById('analysisModal').style.display='none'"
-                class="modal-close-btn" title="Close">✕</div>
+                class="modal-close-btn" title="Close"><svg class="ico"><use href="#i-cross"/></svg></div>
             <h3 style="margin: 0 0 15px 0; color: var(--accent-blue);">Repository Analysis</h3>
             <div id="analysisContent" style="flex: 1; overflow-y: auto; padding-right: 10px;">
                 <p style="color: var(--text-secondary); text-align: center; padding: 40px;">Click "Run Analysis" to scan
@@ -2520,7 +2675,7 @@
         <div class="modal-box"
             style="max-width: 900px; height: 85%; display: flex; flex-direction: column; position: relative; padding-top: 36px;">
             <div onclick="document.getElementById('repoAnalyzerModal').style.display='none'"
-                class="modal-close-btn" title="Close">✕</div>
+                class="modal-close-btn" title="Close"><svg class="ico"><use href="#i-cross"/></svg></div>
             <h3 style="margin: 0 0 15px 0; color: var(--accent-purple);">Repo Inspector</h3>
             <p style="color: var(--text-secondary); font-size: 12px; margin-bottom: 15px;">
                 Enter a GitHub repository URL to analyze its structure, technologies, and architecture. AI will create a
@@ -2539,7 +2694,7 @@
             <div id="repoAnalyzerContent"
                 style="flex: 1; overflow-y: auto; background: var(--bg-body); border-radius: 8px; padding: 15px;">
                 <div style="text-align: center; padding: 60px 20px; color: var(--text-secondary);">
-                    <div style="font-size: 48px; margin-bottom: 15px; opacity: 0.5;">🔍</div>
+                    <div style="font-size: 48px; margin-bottom: 15px; opacity: 0.5;"><svg class="ico" style="width:48px;height:48px;"><use href="#i-search"/></svg></div>
                     <p style="margin: 0;">Enter a GitHub URL above and click "Analyze" to inspect any public repository.
                     </p>
                     <p style="margin: 10px 0 0 0; font-size: 11px; opacity: 0.7;">The AI will analyze file structure,
@@ -2565,14 +2720,14 @@
     <div id="aiCommitModal" class="modal-overlay">
         <div class="modal-box" style="position: relative; max-width: 900px; padding-top: 36px;">
             <div onclick="document.getElementById('aiCommitModal').style.display='none'"
-                class="modal-close-btn" title="Close">✕</div>
-            <h3 style="margin-top: 0; margin-bottom: 20px;">✨ AI Commit Fixer</h3>
+                class="modal-close-btn" title="Close"><svg class="ico"><use href="#i-cross"/></svg></div>
+            <h3 style="margin-top: 0; margin-bottom: 20px;">AI Commit Fixer</h3>
 
             <div style="margin-bottom: 20px;">
                 <label style="display: block; margin-bottom: 8px;">Select Repository:</label>
                 <div style="display: flex; gap: 10px;">
                     <select id="aiCommitRepoSelect" class="input-dark" style="flex: 1;"></select>
-                    <button class="btn-primary" onclick="analyzeCommits()">🔍 Analyze Commits</button>
+                    <button class="btn-primary" onclick="analyzeCommits()">Analyze Commits</button>
                 </div>
             </div>
 
@@ -2580,7 +2735,7 @@
                 style="display: none; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color); text-align: right;">
                 <button class="btn-primary" onclick="applyBulkCommitFix()"
                     style="background: var(--accent-blue); display: inline-flex; align-items: center; gap: 6px;">
-                    ✨ Apply All Suggestions
+                    Apply All Suggestions
                 </button>
             </div>
 
@@ -2601,10 +2756,10 @@
             toast.className = `toast ${type}`;
 
             const icons = {
-                success: '✅',
-                error: '❌',
-                warning: '⚠️',
-                info: 'ℹ️'
+                success: '<svg class="ico"><use href="#i-check-circle"/></svg>',
+                error: '<svg class="ico"><use href="#i-cross-circle"/></svg>',
+                warning: '<svg class="ico"><use href="#i-warning"/></svg>',
+                info: '<svg class="ico"><use href="#i-info"/></svg>'
             };
 
             const titles = {
@@ -2620,7 +2775,7 @@
                     <div class="toast-title">${title || titles[type]}</div>
                     <div class="toast-message">${message}</div>
                 </div>
-                <button class="toast-close" onclick="this.parentElement.remove()">✕</button>
+                <button class="toast-close" onclick="this.parentElement.remove()"><svg class="ico"><use href="#i-cross"/></svg></button>
             `;
 
             container.appendChild(toast);
@@ -2644,10 +2799,10 @@
                 const cancelBtn = document.getElementById('confirmCancel');
 
                 const icons = {
-                    warning: '⚠️',
-                    danger: '🗑️',
-                    info: 'ℹ️',
-                    question: '❓'
+                    warning: '<svg class="ico"><use href="#i-warning"/></svg>',
+                    danger: '<svg class="ico"><use href="#i-trash"/></svg>',
+                    info: '<svg class="ico"><use href="#i-info"/></svg>',
+                    question: '<svg class="ico"><use href="#i-help"/></svg>'
                 };
 
                 iconEl.textContent = icons[options.type || 'warning'];
@@ -2693,7 +2848,9 @@
             document.documentElement.setAttribute('data-theme', theme);
             const label = document.getElementById('themeToggleLabel');
             if (label) {
-                label.textContent = theme === 'dark' ? '☀️ Light Mode' : '🌙 Dark Mode';
+                label.innerHTML = theme === 'dark'
+                    ? '<svg class="ico"><use href="#i-sun"/></svg>Light Mode'
+                    : '<svg class="ico"><use href="#i-moon"/></svg>Dark Mode';
             }
         }
 
@@ -2735,15 +2892,15 @@
             });
 
             const titles = {
-                dashboard:    '🏠 Dashboard',
-                addProject:   '➕ Add Project',
-                repos:        '📁 Repositories',
-                forkSync:     '🔀 Fork Sync',
-                localChanges: '📡 Local Changes',
-                history:      '📋 History',
-                exploreSearch:    '🔍 Search Repositories',
-                exploreTrending:  '🔥 Trending Repositories',
-                exploreTopics:    '🏷️ Explore Topics'
+                dashboard:    'Dashboard',
+                addProject:   'Add Project',
+                repos:        'Repositories',
+                forkSync:     'Fork Sync',
+                localChanges: 'Local Changes',
+                history:      'History',
+                exploreSearch:    'Search Repositories',
+                exploreTrending:  'Trending Repositories',
+                exploreTopics:    'Explore Topics'
             };
             document.getElementById('pageTitle').innerText = titles[viewName] || viewName;
 
@@ -2834,14 +2991,14 @@
                 grid.classList.add('list-view');
                 btnList.style.background = 'rgba(255,255,255,0.1)';
                 btnGrid.style.background = 'transparent';
-                btnList.innerText = '☰';
-                btnGrid.innerText = '☷';
+                btnList.innerText = '<svg class="ico"><use href="#i-list"/></svg>';
+                btnGrid.innerText = '<svg class="ico"><use href="#i-box"/></svg>';
             } else {
                 grid.classList.remove('list-view');
                 btnList.style.background = 'transparent';
                 btnGrid.style.background = 'rgba(255,255,255,0.1)';
-                btnList.innerText = '☰';
-                btnGrid.innerText = '☷';
+                btnList.innerText = '<svg class="ico"><use href="#i-list"/></svg>';
+                btnGrid.innerText = '<svg class="ico"><use href="#i-box"/></svg>';
             }
         }
 
@@ -2863,7 +3020,7 @@
             if (type === 'fork' && document.getElementById('navForkFilter')) document.getElementById('navForkFilter').classList.add('active');
 
             // Title
-            document.getElementById('pageTitle').innerText = type === 'all' ? '📁 Repositories' : (type === 'source' ? '🌿 Source Repositories' : '🔀 Forked Repositories');
+            document.getElementById('pageTitle').innerText = type === 'all' ? 'Repositories' : (type === 'source' ? 'Source Repositories' : 'Forked Repositories');
 
             // Filter Data
             if (type === 'all') filteredRepos = [...allRepos];
@@ -2878,14 +3035,14 @@
             if (allRepos.length === 0) { loadRepos(); return; }
 
             const titleMap = {
-                'public':          '🌍 Public Repos',
-                'private':         '🔐 Private Repos',
-                'has-license':     '📜 Licensed Repos',
-                'no-license':      '⚠️ No License',
-                'has-description': '📝 With Description',
-                'no-description':  '📭 No Description',
-                'archived':        '📦 Archived',
-                'empty':           '🕳️ Empty Repos'
+                'public':          'Public Repos',
+                'private':         'Private Repos',
+                'has-license':     'Licensed Repos',
+                'no-license':      'No License',
+                'has-description': 'With Description',
+                'no-description':  'No Description',
+                'archived':        'Archived',
+                'empty':           'Empty Repos'
             };
 
             switch (type) {
@@ -3015,7 +3172,7 @@
                     let licenseBadge = '<div class="badge badge-no-license">No License</div>';
                     if (repo.license) {
                         const isMit = repo.license.key === 'mit';
-                        licenseBadge = `<div class="badge ${isMit ? 'badge-mit' : 'badge-license'}">📜 ${repo.license.spdx_id}</div>`;
+                        licenseBadge = `<div class="badge ${isMit ? 'badge-mit' : 'badge-license'}">${repo.license.spdx_id}</div>`;
                     }
 
                     const visibilityBadge = repo.private ? '<div class="badge badge-private">Private</div>' : '<div class="badge badge-public">Public</div>';
@@ -3039,11 +3196,12 @@
                         </div>
                         <div class="card-meta">
                             <div style="display: flex; gap: 10px; align-items: center;">
-                                <div class="badge-star">⭐ ${repo.stargazers_count}</div>
+                                <div class="badge-star"><svg class="ico" style="width:10px;height:10px;vertical-align:middle;"><use href="#i-star"/></svg>  ${repo.stargazers_count}</div>
                                 ${licenseBadge}
                             </div>
                             <div style="display:flex; align-items:center; gap:8px;">
-                                <button class="clone-btn" title="Clone to local" onclick="event.stopPropagation(); cloneRepoToLocal('${repo.clone_url}', '${repo.name}', this)" style="background:none; border:1px solid var(--border-color); border-radius:6px; padding:3px 8px; cursor:pointer; font-size:14px; color:var(--text-primary);">⬇</button>
+                                <button class="row-action-btn" title="Clone to local" onclick="event.stopPropagation(); cloneRepoToLocal('${repo.clone_url}', '${repo.name}', this)"><svg class="ico"><use href="#i-download"/></svg></button>
+                                <button class="row-action-btn row-action-danger" title="Delete repository" onclick="event.stopPropagation(); deleteSingleRepo('${repo.full_name}', '${repo.name}', this)"><svg class="ico"><use href="#i-trash"/></svg></button>
                                 <div>${new Date(repo.updated_at).toLocaleDateString()}</div>
                             </div>
                         </div>
@@ -3112,6 +3270,7 @@
                 document.getElementById('countForkSub').innerText = forkCount;
 
                 updateFilterCounts();
+                updateStatusBar(allRepos);
                 applyFilter(currentFilter);
             } else {
                 document.getElementById('status').innerText = 'Error loading.';
@@ -3299,11 +3458,11 @@
             }
             const origText = btn.textContent;
             btn.disabled = true;
-            btn.textContent = '⏳';
+            btn.innerHTML = '<svg class="ico"><use href="#i-hourglass"/></svg>';
             const res = await window.api.cloneRepo({ cloneUrl, clonePath: config.clonePath, repoName });
             if (res.success) {
                 showToast(`Cloned ${repoName} successfully!`, 'success');
-                btn.textContent = '✅';
+                btn.innerHTML = '<svg class="ico"><use href="#i-check-circle"/></svg>';
             } else {
                 showToast(res.error, 'error');
                 btn.textContent = origText;
@@ -3336,6 +3495,33 @@
             document.getElementById('status').innerText = 'Deleted.';
             showToast('Repositories deleted successfully!', 'success');
             loadRepos(); // Refresh
+        }
+
+        async function deleteSingleRepo(fullName, repoName, btn) {
+            const confirmed = await showConfirm(`Delete "${repoName}"? This is PERMANENT and cannot be undone.`, {
+                type: 'danger',
+                title: 'Delete Repository',
+                okText: 'Delete',
+                danger: true
+            });
+            if (!confirmed) return;
+
+            if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
+            const token = await window.api.getToken();
+            const res = await window.api.deleteRepos({ token, repos: [fullName] });
+
+            // deleteRepos may return an array of results or a plain success flag
+            const ok = Array.isArray(res)
+                ? res.every(r => r.status === 'success' || r.success)
+                : (res && res.success !== false);
+
+            if (ok) {
+                showToast(`"${repoName}" deleted.`, 'success');
+                loadRepos();
+            } else {
+                showToast(`Failed to delete "${repoName}".`, 'error');
+                if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+            }
         }
 
         async function startAIRename() {
@@ -3494,14 +3680,14 @@
                 const newDesc = document.getElementById(`desc-${i}`).value;
                 const [owner, repo] = p.fullName.split('/');
 
-                document.getElementById(`desc-stat-${i}`).innerText = '⏳';
+                document.getElementById(`desc-stat-${i}`).innerHTML = '<svg class="ico"><use href="#i-hourglass"/></svg>';
 
                 const result = await window.api.updateDescription({ token, owner, repo, description: newDesc });
 
                 if (result.success) {
-                    document.getElementById(`desc-stat-${i}`).innerHTML = '<span style="color: var(--accent-green);">✓</span>';
+                    document.getElementById(`desc-stat-${i}`).innerHTML = '<span style="color: var(--accent-green);"><svg class="ico"><use href="#i-check"/></svg></span>';
                 } else {
-                    document.getElementById(`desc-stat-${i}`).innerHTML = '<span style="color: var(--danger);">✗</span>';
+                    document.getElementById(`desc-stat-${i}`).innerHTML = '<span style="color: var(--danger);"><svg class='ico' style='width:11px;height:11px;vertical-align:middle;color:var(--danger);'><use href='#i-cross'/></svg></span>';
                 }
             }
 
@@ -3566,7 +3752,7 @@
                 showToast(`Error saving README: ${result.error}`, 'error');
             }
 
-            btn.innerText = '💾 Save to Repository';
+            btn.innerText = 'Save to Repository';
         }
 
         // --- Setup / Clone Info ---
@@ -3593,31 +3779,31 @@
                     <h4 style="color: var(--text-primary); margin: 0 0 5px 0;">${repo.name}</h4>
                     <p style="margin: 0; color: var(--text-secondary);">${repo.description || 'No description'}</p>
                     <span style="font-size: 11px; color: ${repo.private ? 'var(--danger)' : 'var(--accent-green)'};">
-                        ${repo.private ? '🔒 Private' : '🌐 Public'}
+                        ${repo.private ? '<svg class='ico' style='width:12px;height:12px;vertical-align:middle;'><use href='#i-lock'/></svg> Private' : '<svg class='ico' style='width:12px;height:12px;vertical-align:middle;'><use href='#i-globe'/></svg> Public'}
                     </span>
-                    ${repo.language ? `<span style="font-size: 11px; margin-left: 10px;">📝 ${repo.language}</span>` : ''}
+                    ${repo.language ? `<span style="font-size: 11px; margin-left: 10px;"><svg class="ico" style="width:11px;height:11px;vertical-align:middle;"><use href="#i-file"/></svg> ${repo.language}</span>` : ''}
                 </div>
 
                 <div style="background: var(--bg-body); border-radius: 8px; padding: 15px; margin-bottom: 15px;">
-                    <h5 style="color: var(--accent-blue); margin: 0 0 10px 0;">📥 Clone Repository</h5>
+                    <h5 style="color: var(--accent-blue); margin: 0 0 10px 0;"><svg class="ico"><use href="#i-download"/></svg> Clone Repository</h5>
                     
                     <p style="margin: 0 0 5px 0; font-size: 12px; color: var(--text-secondary);">HTTPS:</p>
                     <div style="display: flex; gap: 8px; margin-bottom: 10px;">
                         <input type="text" value="${repo.cloneUrl}" readonly 
                             style="flex: 1; background: var(--bg-input); color: var(--text-primary); border: 1px solid var(--border-color); padding: 8px; border-radius: 4px; font-size: 11px;">
-                        <button class="btn-dark" onclick="navigator.clipboard.writeText('${repo.cloneUrl}'); this.innerText='✓';" style="padding: 8px 12px;">📋</button>
+                        <button class="btn-dark" onclick="navigator.clipboard.writeText('${repo.cloneUrl}'); this.innerHTML='<svg class="ico" style="width:12px;height:12px;"><use href="#i-check"/></svg>';" style="padding: 8px 12px;"><svg class='ico' style='width:12px;height:12px;vertical-align:middle;'><use href='#i-list'/></svg></button>
                     </div>
 
                     <p style="margin: 0 0 5px 0; font-size: 12px; color: var(--text-secondary);">SSH:</p>
                     <div style="display: flex; gap: 8px;">
                         <input type="text" value="${repo.sshUrl}" readonly 
                             style="flex: 1; background: var(--bg-input); color: var(--text-primary); border: 1px solid var(--border-color); padding: 8px; border-radius: 4px; font-size: 11px;">
-                        <button class="btn-dark" onclick="navigator.clipboard.writeText('${repo.sshUrl}'); this.innerText='✓';" style="padding: 8px 12px;">📋</button>
+                        <button class="btn-dark" onclick="navigator.clipboard.writeText('${repo.sshUrl}'); this.innerHTML='<svg class="ico" style="width:12px;height:12px;"><use href="#i-check"/></svg>';" style="padding: 8px 12px;"><svg class='ico' style='width:12px;height:12px;vertical-align:middle;'><use href='#i-list'/></svg></button>
                     </div>
                 </div>
 
                 <div style="background: var(--bg-body); border-radius: 8px; padding: 15px;">
-                    <h5 style="color: var(--accent-green); margin: 0 0 10px 0;">🛠️ Quick Setup</h5>
+                    <h5 style="color: var(--accent-green); margin: 0 0 10px 0;"><svg class="ico"><use href="#i-settings"/></svg> Quick Setup</h5>
                     <pre style="background: var(--bg-input); padding: 12px; border-radius: 6px; font-size: 11px; overflow-x: auto; margin: 0; color: var(--text-primary);">
 # Clone the repository
 git clone ${repo.cloneUrl}
@@ -3634,7 +3820,7 @@ npm start</pre>
 
                 <div style="margin-top: 15px; text-align: center;">
                     <button class="btn-dark" onclick="window.api.openExternal('${repo.htmlUrl}')" style="padding: 10px 20px;">
-                        🔗 Open on GitHub
+                        <svg class='ico' style='width:12px;height:12px;vertical-align:middle;'><use href='#i-globe'/></svg> Open on GitHub
                     </button>
                 </div>
             `;
@@ -3791,26 +3977,26 @@ npm start</pre>
 
         async function syncForkRepo(fullName) {
             const btn = document.getElementById('btnSyncFork');
-            btn.innerText = '⏳ Syncing...';
+            btn.innerHTML = '<svg class="ico"><use href="#i-hourglass"/></svg> Syncing...';
             btn.disabled = true;
 
             const token = await window.api.getToken();
             const result = await window.api.syncFork({ token, fullName });
 
             if (result.success) {
-                btn.innerText = '✓ Synced!';
+                btn.innerHTML = '<svg class="ico" style="width:14px;height:14px;vertical-align:middle;color:var(--accent-green);"><use href="#i-check"/></svg> Synced!';
                 btn.style.background = 'var(--accent-green)';
                 showToast('Fork synced successfully with upstream!', 'success');
                 // Refresh the detail modal
                 setTimeout(() => openRepoDetail(fullName), 1000);
             } else {
-                btn.innerText = '✗ Failed';
+                btn.innerText = '<svg class='ico' style='width:11px;height:11px;vertical-align:middle;color:var(--danger);'><use href='#i-cross'/></svg> Failed';
                 btn.style.background = 'var(--danger)';
                 showToast(`Sync failed: ${result.error}`, 'error');
             }
 
             setTimeout(() => {
-                btn.innerText = '🔄 Sync Fork with Upstream';
+                btn.innerText = 'Sync Fork with Upstream';
                 btn.style.background = '';
                 btn.disabled = false;
             }, 2000);
@@ -3848,15 +4034,15 @@ npm start</pre>
             const success = results.filter(r => r.status === 'success').length;
             const failed = results.filter(r => r.status === 'error').length;
 
-            btn.innerText = visibility === 'public' ? '🌐 Make Public' : '🔒 Make Private';
+            btn.innerText = visibility === 'public' ? '<svg class='ico' style='width:12px;height:12px;vertical-align:middle;'><use href='#i-globe'/></svg> Make Public' : '<svg class='ico' style='width:12px;height:12px;vertical-align:middle;'><use href='#i-lock'/></svg> Make Private';
             document.getElementById('visibilityModal').style.display = 'none';
 
-            showToast(`✓ Success: ${success}\n✗ Failed: ${failed}`, success > 0 ? 'success' : 'error', 'Visibility Changed');
+            showToast(`<svg class='ico' style='width:11px;height:11px;vertical-align:middle;color:var(--accent-green);'><use href='#i-check'/></svg> Success: ${success}\n<svg class='ico' style='width:11px;height:11px;vertical-align:middle;color:var(--danger);'><use href='#i-cross'/></svg> Failed: ${failed}`, success > 0 ? 'success' : 'error', 'Visibility Changed');
             loadRepos();
         }
 
         // --- Topics ---
-        function openTopicsModal() {
+        async function openTopicsModal() {
             const selected = getSelected();
             if (selected.length === 0) return showToast('Select repos first.', 'warning');
 
@@ -3864,6 +4050,17 @@ npm start</pre>
             document.getElementById('topicsRepoList').innerHTML = list;
             document.getElementById('topicsInput').value = '';
             document.getElementById('topicsModal').style.display = 'flex';
+
+            // Pre-load existing topics from first selected repo
+            if (selected.length === 1) {
+                try {
+                    const token = await window.api.getToken();
+                    const result = await window.api.getRepoTopics({ token, fullName: selected[0] });
+                    if (result && result.success && result.topics && result.topics.length > 0) {
+                        document.getElementById('topicsInput').value = result.topics.join(', ');
+                    }
+                } catch (e) { /* skip pre-load on error */ }
+            }
         }
 
         function addTopicQuick(topic) {
@@ -3898,21 +4095,34 @@ npm start</pre>
             const success = results.filter(r => r.status === 'success').length;
             const failed = results.filter(r => r.status === 'error').length;
 
-            btn.innerText = action === 'add' ? '➕ Add Topics' : '➖ Remove Topics';
+            btn.innerText = action === 'add' ? 'Add Topics' : 'Remove Topics';
             document.getElementById('topicsModal').style.display = 'none';
 
-            showToast(`✓ Success: ${success}\n✗ Failed: ${failed}`, success > 0 ? 'success' : 'error', `Topics ${action === 'add' ? 'Added' : 'Removed'}`);
+            showToast(`<svg class='ico' style='width:11px;height:11px;vertical-align:middle;color:var(--accent-green);'><use href='#i-check'/></svg> Success: ${success}\n<svg class='ico' style='width:11px;height:11px;vertical-align:middle;color:var(--danger);'><use href='#i-cross'/></svg> Failed: ${failed}`, success > 0 ? 'success' : 'error', `Topics ${action === 'add' ? 'Added' : 'Removed'}`);
             loadRepos();
         }
 
         // --- License ---
-        function openLicenseModal() {
+        async function openLicenseModal() {
             const selected = getSelected();
             if (selected.length === 0) return showToast('Select repos first.', 'warning');
 
             const list = selected.map(r => `<div style="padding: 4px 0; font-size: 12px;">• ${r}</div>`).join('');
             document.getElementById('licenseRepoList').innerHTML = list;
             document.getElementById('licenseModal').style.display = 'flex';
+
+            // Pre-check which repos already have a LICENSE file
+            try {
+                const token = await window.api.getToken();
+                const results = await window.api.checkLicense({ token, repos: selected });
+                const existing = results.filter(r => r.hasLicense).map(r => r.name.split('/')[1] || r.name);
+                if (existing.length > 0) {
+                    const note = document.createElement('div');
+                    note.style.cssText = 'margin-top:8px; padding:8px 10px; background:var(--bg-input); border-radius:6px; font-size:11px; color:var(--text-secondary); border-left: 3px solid var(--accent-yellow);';
+                    note.innerHTML = `<svg class="ico" style="width:12px;height:12px;vertical-align:middle;"><use href="#i-warning"/></svg> Already has LICENSE: ${existing.join(', ')}`;
+                    document.getElementById('licenseRepoList').appendChild(note);
+                }
+            } catch (e) { /* skip pre-check on error */ }
         }
 
         async function applyLicense() {
@@ -3934,10 +4144,10 @@ npm start</pre>
             const success = results.filter(r => r.status === 'success').length;
             const failed = results.filter(r => r.status === 'error').length;
 
-            btn.innerText = '📜 Add License to Repos';
+            btn.innerText = 'Add License to Repos';
             document.getElementById('licenseModal').style.display = 'none';
 
-            showToast(`✓ Success: ${success}\n✗ Failed: ${failed}`, success > 0 ? 'success' : 'error', 'Licenses Added');
+            showToast(`<svg class='ico' style='width:11px;height:11px;vertical-align:middle;color:var(--accent-green);'><use href='#i-check'/></svg> Success: ${success}\n<svg class='ico' style='width:11px;height:11px;vertical-align:middle;color:var(--danger);'><use href='#i-cross'/></svg> Failed: ${failed}`, success > 0 ? 'success' : 'error', 'Licenses Added');
             loadRepos();
         }
 
@@ -3950,14 +4160,14 @@ npm start</pre>
 
         async function runAnalysis() {
             const btn = document.getElementById('btnRunAnalysis');
-            btn.innerText = '⏳ Analyzing...';
+            btn.innerHTML = '<svg class="ico"><use href="#i-hourglass"/></svg> Analyzing...';
             btn.disabled = true;
             document.getElementById('analysisContent').innerHTML = '<p style="color: var(--text-secondary); text-align: center; padding: 40px;">Analyzing all repositories... This may take a moment.</p>';
 
             const token = await window.api.getToken();
             const result = await window.api.analyzeAllRepos({ token });
 
-            btn.innerText = '🔍 Run Analysis';
+            btn.innerText = 'Run Analysis';
             btn.disabled = false;
 
             if (!result.success) {
@@ -3999,7 +4209,7 @@ npm start</pre>
                     <span style="font-size: 12px;">${r.name}</span>
                     <span style="font-size: 11px; color: var(--text-secondary);">Last push: ${new Date(r.lastPush).toLocaleDateString()}</span>
                 </div>
-            `).join('') || '<p style="color: var(--accent-green); font-size: 12px;">No stale repos! 🎉</p>';
+            `).join('') || '<p style="color: var(--accent-green); font-size: 12px;">No stale repos! <svg class='ico'><use href='#i-sparkles'/></svg></p>';
 
             // Large repos list
             const largeList = a.largeRepos.slice(0, 10).map(r => `
@@ -4038,14 +4248,14 @@ npm start</pre>
                 </div>
 
                 <div style="background: var(--bg-card); border-radius: 8px; padding: 15px; margin-bottom: 15px;">
-                    <h5 style="color: var(--accent-blue); margin: 0 0 12px 0;">📊 Size by Language</h5>
+                    <h5 style="color: var(--accent-blue); margin: 0 0 12px 0;"><svg class="ico"><use href="#i-chart"/></svg> Size by Language</h5>
                     ${langBars || '<p style="color: var(--text-secondary); font-size: 12px;">No language data available.</p>'}
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                     <div style="background: var(--bg-card); border-radius: 8px; padding: 15px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                            <h5 style="color: var(--accent-yellow); margin: 0;">🕐 Stale Repos (${a.staleRepos.length})</h5>
+                            <h5 style="color: var(--accent-yellow); margin: 0;"><svg class='ico' style='width:12px;height:12px;vertical-align:middle;'><use href='#i-clock'/></svg> Stale Repos (${a.staleRepos.length})</h5>
                             <button class="btn-dark" onclick="filterStaleRepos(); document.getElementById('analysisModal').style.display='none';" style="padding: 4px 10px; font-size: 10px;">Filter</button>
                         </div>
                         ${staleList}
@@ -4053,7 +4263,7 @@ npm start</pre>
 
                     <div style="background: var(--bg-card); border-radius: 8px; padding: 15px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                            <h5 style="color: var(--danger); margin: 0;">💾 Large Repos (${a.largeRepos.length})</h5>
+                            <h5 style="color: var(--danger); margin: 0;">Large Repos (${a.largeRepos.length})</h5>
                             <button class="btn-dark" onclick="filterLargeRepos(); document.getElementById('analysisModal').style.display='none';" style="padding: 4px 10px; font-size: 10px;">Filter</button>
                         </div>
                         ${largeList}
@@ -4062,17 +4272,17 @@ npm start</pre>
 
                 <div style="background: var(--bg-card); border-radius: 8px; padding: 15px; margin-top: 15px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                        <h5 style="color: var(--accent-blue); margin: 0;">🔀 Forks (${a.unchangedForks.length})</h5>
+                        <h5 style="color: var(--accent-blue); margin: 0;">Forks (${a.unchangedForks.length})</h5>
                         <button class="btn-dark" onclick="filterUnchangedForks(); document.getElementById('analysisModal').style.display='none';" style="padding: 4px 10px; font-size: 10px;">Filter</button>
                     </div>
                     ${forkList}
                     <p style="margin: 10px 0 0 0; font-size: 11px; color: var(--text-secondary);">
-                        💡 Tip: Double-click on a fork to check if it has any changes compared to the parent repo.
+                        <svg class="ico" style="width:14px;height:14px;vertical-align:middle;"><use href="#i-bulb"/></svg> Tip: Double-click on a fork to check if it has any changes compared to the parent repo.
                     </p>
                 </div>
 
                 <div style="background: var(--bg-card); border-radius: 8px; padding: 15px; margin-top: 15px;">
-                    <h5 style="color: var(--text-secondary); margin: 0 0 10px 0;">⭐ Zero Stars Repos (${a.noStarsRepos.length})</h5>
+                    <h5 style="color: var(--text-secondary); margin: 0 0 10px 0;"><svg class="ico"><use href="#i-star"/></svg> Zero Stars Repos (${a.noStarsRepos.length})</h5>
                     <p style="font-size: 12px; color: var(--text-secondary); margin: 0;">
                         ${a.noStarsRepos.length} repositories have no stars. Consider adding descriptions and READMEs to make them more discoverable!
                     </p>
@@ -4092,7 +4302,7 @@ npm start</pre>
             }
             currentPage = 1;
             renderPage();
-            document.getElementById('pageTitle').innerText = vis === 'private' ? '🔐 Private Repos' : '🌍 Public Repos';
+            document.getElementById('pageTitle').innerText = vis === 'private' ? 'Private Repos' : 'Public Repos';
             document.getElementById('status').innerText = `Showing ${filteredRepos.length} ${vis} repos`;
         }
 
@@ -4198,7 +4408,7 @@ npm start</pre>
 
             content.innerHTML = `
                 <div style="text-align: center; padding: 60px 20px; color: var(--text-secondary);">
-                    <div style="font-size: 32px; margin-bottom: 15px;" class="spin">⏳</div>
+                    <div style="font-size: 32px; margin-bottom: 15px;" class="spin"><svg class="ico"><use href="#i-hourglass"/></svg></div>
                     <p style="margin: 0;">Analyzing repository structure...</p>
                     <p style="margin: 10px 0 0 0; font-size: 11px; opacity: 0.7;">This may take a moment. AI is examining files, dependencies, and architecture.</p>
                 </div>
@@ -4229,7 +4439,7 @@ npm start</pre>
                 } else {
                     content.innerHTML = `
                         <div style="text-align: center; padding: 60px 20px; color: var(--danger);">
-                            <div style="font-size: 32px; margin-bottom: 15px;">❌</div>
+                            <div style="font-size: 32px; margin-bottom: 15px;"><svg class="ico" style="width:32px;height:32px;"><use href="#i-cross-circle"/></svg></div>
                             <p style="margin: 0;">Analysis failed</p>
                             <p style="margin: 10px 0 0 0; font-size: 12px; opacity: 0.8;">${result.error}</p>
                         </div>
@@ -4239,7 +4449,7 @@ npm start</pre>
             } catch (e) {
                 content.innerHTML = `
                     <div style="text-align: center; padding: 60px 20px; color: var(--danger);">
-                        <div style="font-size: 32px; margin-bottom: 15px;">❌</div>
+                        <div style="font-size: 32px; margin-bottom: 15px;"><svg class="ico" style="width:32px;height:32px;"><use href="#i-cross-circle"/></svg></div>
                         <p style="margin: 0;">Error occurred</p>
                         <p style="margin: 10px 0 0 0; font-size: 12px; opacity: 0.8;">${e.message}</p>
                     </div>
@@ -4280,7 +4490,7 @@ npm start</pre>
             // Loading Animation
             resultsDiv.innerHTML = `
                 <div style="text-align: center; padding: 60px 20px; color: var(--text-secondary);">
-                    <div style="font-size: 32px; margin-bottom: 15px;" class="spin">⏳</div>
+                    <div style="font-size: 32px; margin-bottom: 15px;" class="spin"><svg class="ico"><use href="#i-hourglass"/></svg></div>
                     <p style="margin: 0;">Analyzing commits...</p>
                     <p style="margin: 10px 0 0 0; font-size: 11px; opacity: 0.7;">AI is rewriting your commit history...</p>
                 </div>
@@ -4423,7 +4633,7 @@ npm start</pre>
 
             if (btn) {
                 btn.disabled = false;
-                btn.innerHTML = '✨ Apply All Suggestions';
+                btn.innerHTML = 'Apply All Suggestions';
             }
 
             if (result.success) {
@@ -4598,6 +4808,68 @@ npm start</pre>
             renderRecentOps(result.recentHistory || []);
         }
 
+        // ── Clone stats (GitHub Traffic API, last 14 days) ──────────────────
+        let cloneStatsLoading = false;
+        async function loadCloneStats(userTriggered) {
+            if (cloneStatsLoading) return;
+            const valEl = document.getElementById('dashClones');
+            const lblEl = document.getElementById('dashClonesLabel');
+            if (!valEl) return;
+
+            const token = await window.api.getToken();
+            if (!token) {
+                if (userTriggered) showToast('Please save a GitHub token in Settings first.', 'warning');
+                return;
+            }
+
+            // Use already-loaded repos if available, otherwise fetch the list
+            let repoList = (Array.isArray(allRepos) && allRepos.length) ? allRepos : null;
+            if (!repoList) {
+                const res = await window.api.getRepos(token);
+                if (!res.success) { if (userTriggered) showToast('Repo list failed: ' + res.error, 'error'); return; }
+                repoList = res.data;
+            }
+
+            // Traffic API only works on repos you have push access to (your own)
+            const fullNames = repoList
+                .filter(r => r.permissions ? r.permissions.push : true)
+                .map(r => r.full_name);
+
+            if (!fullNames.length) { valEl.innerText = '0'; return; }
+
+            cloneStatsLoading = true;
+            valEl.innerText = '…';
+            if (lblEl) lblEl.innerText = `Scanning ${fullNames.length}…`;
+
+            try {
+                const res = await window.api.getCloneStats({ token, repos: fullNames });
+                if (!res.success) {
+                    valEl.innerText = '—';
+                    if (lblEl) lblEl.innerText = 'Clones (14d)';
+                    if (userTriggered) showToast('Clone stats failed: ' + res.error, 'error');
+                    return;
+                }
+                valEl.innerText = res.total;
+                if (lblEl) lblEl.innerText = `Clones · ${res.totalUniques} unique (14d)`;
+
+                // Show a short breakdown of the most-cloned repos
+                if (userTriggered) {
+                    const top = (res.perRepo || []).filter(r => r.count > 0).slice(0, 5);
+                    if (top.length) {
+                        const lines = top.map(r => `${r.fullName.split('/')[1]}: ${r.count} (${r.uniques} unique)`).join('\n');
+                        showToast(`Top cloned (14d):\n${lines}`, 'success');
+                    } else {
+                        showToast('No clones recorded in the last 14 days.', 'info');
+                    }
+                }
+            } catch (e) {
+                valEl.innerText = '—';
+                if (lblEl) lblEl.innerText = 'Clones (14d)';
+            } finally {
+                cloneStatsLoading = false;
+            }
+        }
+
         function renderDashLanguages(langs) {
             const container = document.getElementById('dashLanguages');
             if (!langs.length) {
@@ -4627,7 +4899,7 @@ npm start</pre>
             container.innerHTML = repos.map(r => {
                 const color = LANG_COLORS[r.language] || '#888';
                 const ago = timeAgo(new Date(r.updated));
-                const visIcon = r.visibility === 'private' ? '🔐' : '🌍';
+                const visIcon = r.visibility === 'private' ? '<svg class="ico" style="width:11px;height:11px;vertical-align:middle;"><use href="#i-lock"/></svg>' : '<svg class="ico" style="width:11px;height:11px;vertical-align:middle;"><use href="#i-globe"/></svg>';
                 return `<div class="recent-repo-item" onclick="showView('repos'); loadRepos()">
                     <div class="recent-repo-dot" style="background:${color};"></div>
                     <div class="recent-repo-name">${r.name}</div>
@@ -4655,7 +4927,7 @@ npm start</pre>
             }
             container.innerHTML = ops.map(op => {
                 const badge = opBadge(op);
-                const icon = op.type === 'publish' ? '📤' : (op.type === 'fork-sync' ? '🔀' : '🗑️');
+                const icon = op.type === 'publish' ? '<svg class="ico" style="width:12px;height:12px;"><use href="#i-rocket"/></svg>' : (op.type === 'fork-sync' ? '<svg class="ico" style="width:12px;height:12px;"><use href="#i-fork"/></svg>' : '<svg class="ico" style="width:12px;height:12px;"><use href="#i-trash"/></svg>');
                 const time = new Date(op.timestamp).toLocaleString();
                 return `<div class="history-item">
                     <span style="font-size:18px;">${icon}</span>
@@ -4804,7 +5076,7 @@ npm start</pre>
             tbody.innerHTML = projectFolders.map((f, i) => {
                 const statusChip = chipHtml(f.status);
                 const gitBadge = f.hasGit
-                    ? '<span style="color:var(--accent-green);font-size:11px;">✓ Git</span>'
+                    ? '<span style="color:var(--accent-green);font-size:11px;"><svg class='ico' style='width:12px;height:12px;vertical-align:middle;color:var(--accent-green);'><use href='#i-check'/></svg> Git</span>'
                     : '<span style="color:var(--accent-yellow);font-size:11px;">⊕ Init</span>';
 
                 const detectedLabel = f.detectedType
@@ -5063,13 +5335,13 @@ npm start</pre>
                     forkRepos[i]._upstreamStatus = res.status;
 
                     if (res.status === 'identical') {
-                        cell.innerHTML = '<span class="status-chip chip-synced" style="font-size:10px;">✓ Up to date</span>';
+                        cell.innerHTML = '<span class="status-chip chip-synced" style="font-size:10px;"><svg class='ico' style='width:12px;height:12px;vertical-align:middle;color:var(--accent-green);'><use href='#i-check'/></svg> Up to date</span>';
                     } else if (res.behind > 0 && res.ahead === 0) {
                         cell.innerHTML = `<span class="status-chip" style="font-size:10px; background:var(--accent-yellow); color:#000;">⬇ ${res.behind} commit${res.behind > 1 ? 's' : ''} behind</span>`;
                     } else if (res.ahead > 0 && res.behind === 0) {
-                        cell.innerHTML = `<span class="status-chip" style="font-size:10px; background:var(--accent-blue); color:#fff;">⬆ ${res.ahead} commit${res.ahead > 1 ? 's' : ''} ahead</span>`;
+                        cell.innerHTML = `<span class="status-chip" style="font-size:10px; background:var(--accent-blue); color:#fff;"><svg class='ico' style='width:10px;height:10px;vertical-align:middle;'><use href='#i-rocket'/></svg> ${res.ahead} commit${res.ahead > 1 ? 's' : ''} ahead</span>`;
                     } else if (res.status === 'diverged') {
-                        cell.innerHTML = `<span class="status-chip" style="font-size:10px; background:var(--accent-purple); color:#fff;">⬆${res.ahead} ⬇${res.behind} diverged</span>`;
+                        cell.innerHTML = `<span class="status-chip" style="font-size:10px; background:var(--accent-purple); color:#fff;"><svg class='ico' style='width:10px;height:10px;vertical-align:middle;'><use href='#i-rocket'/></svg>${res.ahead} ⬇${res.behind} diverged</span>`;
                     } else {
                         cell.innerHTML = '<span style="color:var(--text-secondary);">—</span>';
                     }
@@ -5259,7 +5531,7 @@ npm start</pre>
                 }
 
                 const pushBtn = p.needsPush && p._pushStatus !== 'pushed'
-                    ? `<button class="btn-dark" style="padding:4px 10px; font-size:11px;" onclick="pushSingleProject(${i})">🚀 Push</button>`
+                    ? `<button class="btn-dark" style="padding:4px 10px; font-size:11px;" onclick="pushSingleProject(${i})">Push</button>`
                     : '—';
 
                 tr.innerHTML = `
@@ -5339,11 +5611,11 @@ npm start</pre>
                 return;
             }
 
-            const typeIcons = { publish: '📤', 'fork-sync': '🔀', delete: '🗑️' };
+            const typeIcons = { publish: '<svg class="ico" style="width:12px;height:12px;"><use href="#i-rocket"/></svg>', 'fork-sync': '<svg class="ico" style="width:12px;height:12px;"><use href="#i-fork"/></svg>', delete: '<svg class="ico" style="width:12px;height:12px;"><use href="#i-trash"/></svg>' };
 
             container.innerHTML = '<div class="history-list">' + history.map(op => {
                 const badge = opBadge(op);
-                const icon  = typeIcons[op.type] || '⚙️';
+                const icon  = typeIcons[op.type] || '<svg class="ico" style="width:12px;height:12px;"><use href="#i-settings"/></svg>';
                 const time  = new Date(op.timestamp).toLocaleString();
                 const detail = op.error ? `<div style="font-size:11px; color:var(--danger); margin-top:3px;">${escHtml(op.error)}</div>`
                              : op.repoUrl ? `<div style="font-size:11px; margin-top:3px;"><a href="#" onclick="window.api.openExternal('${op.repoUrl}');return false;" style="color:var(--accent-blue);">${escHtml(op.repoUrl)}</a></div>`
@@ -5915,6 +6187,34 @@ npm start</pre>
             }
         });
 
+    </script>
+
+    <!-- Atom-style bottom status bar -->
+    <div class="status-bar" id="statusBar">
+        <span class="sb-item"><svg class="ico"><use href="#i-branch"/></svg>main</span>
+        <span class="sb-sep">|</span>
+        <span class="sb-item"><svg class="ico"><use href="#i-folder"/></svg><b id="sbTotal">0</b>&nbsp;repos</span>
+        <span class="sb-sep">·</span>
+        <span class="sb-item"><b id="sbSource">0</b>&nbsp;source</span>
+        <span class="sb-sep">·</span>
+        <span class="sb-item"><b id="sbForks">0</b>&nbsp;forks</span>
+        <span class="sb-sep">·</span>
+        <span class="sb-item"><b id="sbPrivate">0</b>&nbsp;private</span>
+        <span class="sb-right" id="sbVersion">GitHub Repo Cleaner AI</span>
+    </div>
+
+    <script>
+        // Keep the bottom status bar in sync with loaded repositories
+        function updateStatusBar(repos) {
+            try {
+                if (!Array.isArray(repos)) return;
+                const set = (id, v) => { const el = document.getElementById(id); if (el) el.innerText = v; };
+                set('sbTotal', repos.length);
+                set('sbSource', repos.filter(r => !r.fork).length);
+                set('sbForks', repos.filter(r => r.fork).length);
+                set('sbPrivate', repos.filter(r => r.private).length);
+            } catch (e) {}
+        }
     </script>
 </body>
 
