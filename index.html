@@ -2824,7 +2824,7 @@
                     question: '<svg class="ico"><use href="#i-help"/></svg>'
                 };
 
-                iconEl.textContent = icons[options.type || 'warning'];
+                iconEl.innerHTML = icons[options.type || 'warning'];
                 titleEl.textContent = options.title || 'Confirm Action';
                 msgEl.textContent = message;
                 okBtn.textContent = options.okText || 'OK';
