@@ -2360,6 +2360,14 @@ ipcMain.handle('setAutoStart', async (event, enabled) => {
     }
 });
 
+ipcMain.handle('getAppVersion', async () => {
+    try {
+        return app.getVersion();
+    } catch (e) {
+        return null;
+    }
+});
+
 // ─── Project Type Detection ────────────────────────────────────────────────────
 function detectProjectType(folderPath) {
     let files = [];

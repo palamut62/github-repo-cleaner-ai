@@ -86,6 +86,7 @@ contextBridge.exposeInMainWorld('api', {
 
     // System
     setAutoStart: (enabled) => ipcRenderer.invoke('setAutoStart', enabled),
+    getAppVersion: () => ipcRenderer.invoke('getAppVersion'),
 
     // GitHub Explore
     searchRepos: (data) => ipcRenderer.invoke('searchRepos', data),

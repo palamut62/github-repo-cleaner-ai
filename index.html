@@ -79,29 +79,6 @@
         }
 
         /* === Atom-style bottom status bar === */
-        .status-bar {
-            position: fixed;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            height: 24px;
-            background: var(--bg-input);
-            border-top: 1px solid var(--border-color);
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            padding: 0 12px;
-            font-size: 11px;
-            color: var(--text-secondary);
-            z-index: 1000;
-            -webkit-app-region: no-drag;
-        }
-        .status-bar .sb-item { display: inline-flex; align-items: center; gap: 5px; }
-        .status-bar .sb-item .ico { width: 13px; height: 13px; opacity: 0.8; }
-        .status-bar .sb-item b { color: var(--text-primary); font-weight: 600; }
-        .status-bar .sb-sep { opacity: 0.4; }
-        .status-bar .sb-right { margin-left: auto; opacity: 0.7; }
-
         /* --- Sidebar --- */
         .sidebar {
             width: 250px;
@@ -1028,6 +1005,12 @@
             gap: 12px;
         }
 
+        .statusbar-ico { width: 13px; height: 13px; opacity: 0.7; }
+        .statusbar-item b { color: var(--text-primary); font-weight: 600; }
+        .statusbar-muted { opacity: 0.7; }
+        .statusbar-breakdown, #statusbarBreakdown { gap: 6px; }
+        .statusbar-dim { opacity: 0.35; }
+
         /* ── Dashboard Stats ────────────────────────────────────────────────── */
         .dash-welcome {
             display: flex;
@@ -1744,7 +1727,7 @@
                         </svg>
                     </div>
                 </div>
-                <div style="opacity: 0.5; font-size: 10px;">GitHub Repo Organizer v2.4.0</div>
+                <div id="sidebarVersion" style="opacity: 0.5; font-size: 10px;">GitHub Repo Organizer v2.6.1</div>
             </div>
         </div>
     </div>
@@ -2187,29 +2170,36 @@
             </div>
         </div>
 
-        <!-- Statusbar -->
+        <!-- Statusbar (single, unified) -->
         <div class="statusbar" id="statusbar">
             <div class="statusbar-item">
                 <div class="statusbar-dot disconnected" id="statusbarDot"></div>
                 <span id="statusbarConnection">Disconnected</span>
             </div>
-            <div class="statusbar-separator"></div>
+            <div class="statusbar-separator" id="statusbarSepUser" style="display:none;"></div>
             <div class="statusbar-item" id="statusbarUser" style="display:none;">
-                <span><svg class="ico"><use href="#i-user"/></svg></span>
+                <svg class="statusbar-ico"><use href="#i-user"/></svg>
                 <span id="statusbarUsername">—</span>
             </div>
             <div class="statusbar-separator" id="statusbarSep2" style="display:none;"></div>
             <div class="statusbar-item" id="statusbarRepoCount" style="display:none;">
-                <span><svg class="ico"><use href="#i-folder"/></svg></span>
-                <span id="statusbarRepos">0 repos</span>
+                <svg class="statusbar-ico"><use href="#i-folder"/></svg>
+                <span><b id="statusbarRepos">0</b>&nbsp;repos</span>
+            </div>
+            <div class="statusbar-item statusbar-muted" id="statusbarBreakdown" style="display:none;">
+                <span><b id="statusbarSource">0</b>&nbsp;source</span>
+                <span class="statusbar-dim">·</span>
+                <span><b id="statusbarForks">0</b>&nbsp;forks</span>
+                <span class="statusbar-dim">·</span>
+                <span><b id="statusbarPrivate">0</b>&nbsp;private</span>
             </div>
             <div class="statusbar-right">
-                <div class="statusbar-item" id="statusbarActivity" style="display:none;">
+                <div class="statusbar-item statusbar-muted" id="statusbarActivity" style="display:none;">
                     <span id="statusbarLastAction">—</span>
                 </div>
                 <div class="statusbar-separator"></div>
-                <div class="statusbar-item">
-                    <span id="statusbarVersion">v2.4.0</span>
+                <div class="statusbar-item statusbar-muted">
+                    <span id="statusbarVersion">—</span>
                 </div>
             </div>
         </div>
@@ -2983,6 +2973,17 @@
         document.addEventListener('DOMContentLoaded', async () => {
             switchView('list'); // ensure repo grid default card layout
             showView('dashboard');
+
+            // Pull the real app version from the main process (single source of truth)
+            try {
+                const v = await window.api.getAppVersion();
+                if (v) {
+                    const verEl = document.getElementById('statusbarVersion');
+                    if (verEl) verEl.textContent = 'v' + v;
+                    const sidebarVer = document.getElementById('sidebarVersion');
+                    if (sidebarVer) sidebarVer.textContent = 'GitHub Repo Organizer v' + v;
+                }
+            } catch (e) {}
 
             // Load saved app config (cache for session)
             cachedAppConfig = await window.api.getAppConfig();
@@ -4789,16 +4790,19 @@ npm start</pre>
             const reposEl = document.getElementById('statusbarRepos');
             const sep2 = document.getElementById('statusbarSep2');
 
+            const sepUser = document.getElementById('statusbarSepUser');
+
             if (data.connected) {
                 dot.className = 'statusbar-dot';
                 conn.textContent = 'Connected';
                 if (data.username) {
                     usernameEl.textContent = data.username;
                     userEl.style.display = 'flex';
+                    if (sepUser) sepUser.style.display = 'block';
                     sep2.style.display = 'block';
                 }
                 if (data.repoCount !== undefined) {
-                    reposEl.textContent = data.repoCount + ' repos';
+                    reposEl.textContent = data.repoCount;
                     repoCountEl.style.display = 'flex';
                 }
             } else {
@@ -6265,30 +6269,17 @@ npm start</pre>
 
     </script>
 
-    <!-- Atom-style bottom status bar -->
-    <div class="status-bar" id="statusBar">
-        <span class="sb-item"><svg class="ico"><use href="#i-branch"/></svg>main</span>
-        <span class="sb-sep">|</span>
-        <span class="sb-item"><svg class="ico"><use href="#i-folder"/></svg><b id="sbTotal">0</b>&nbsp;repos</span>
-        <span class="sb-sep">·</span>
-        <span class="sb-item"><b id="sbSource">0</b>&nbsp;source</span>
-        <span class="sb-sep">·</span>
-        <span class="sb-item"><b id="sbForks">0</b>&nbsp;forks</span>
-        <span class="sb-sep">·</span>
-        <span class="sb-item"><b id="sbPrivate">0</b>&nbsp;private</span>
-        <span class="sb-right" id="sbVersion">GitHub Repo Organizer</span>
-    </div>
-
     <script>
-        // Keep the bottom status bar in sync with loaded repositories
+        // Keep the unified status bar's repo breakdown in sync with loaded repositories
         function updateStatusBar(repos) {
             try {
                 if (!Array.isArray(repos)) return;
+                const breakdown = document.getElementById('statusbarBreakdown');
                 const set = (id, v) => { const el = document.getElementById(id); if (el) el.innerText = v; };
-                set('sbTotal', repos.length);
-                set('sbSource', repos.filter(r => !r.fork).length);
-                set('sbForks', repos.filter(r => r.fork).length);
-                set('sbPrivate', repos.filter(r => r.private).length);
+                set('statusbarSource', repos.filter(r => !r.fork).length);
+                set('statusbarForks', repos.filter(r => r.fork).length);
+                set('statusbarPrivate', repos.filter(r => r.private).length);
+                if (breakdown) breakdown.style.display = repos.length ? 'flex' : 'none';
             } catch (e) {}
         }
     </script>
