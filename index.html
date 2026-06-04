@@ -335,6 +335,34 @@
             flex-shrink: 0;
         }
 
+        .footer-icon-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .footer-icon-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: background-color 0.15s, color 0.15s;
+        }
+
+        .footer-icon-btn:hover {
+            background-color: var(--bg-input);
+            color: var(--text-primary);
+        }
+
+        .footer-icon-btn .ico {
+            width: 18px;
+            height: 18px;
+        }
+
         /* --- Main Content --- */
         .main-content {
             flex: 1;
@@ -448,6 +476,26 @@
             display: flex;
             gap: 12px;
             align-items: flex-start;
+            padding-right: 28px; /* reserve space for the absolute checkbox */
+        }
+
+        .card-title-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+        }
+
+        .card-title-row .card-title {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .card-badges {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            flex-shrink: 0;
         }
 
         .repo-icon {
@@ -578,11 +626,14 @@
 
         .repo-grid.list-view .card-desc {
             flex: 1;
-            -webkit-line-clamp: 1;
-            line-clamp: 1;
+            min-width: 0;
+            display: block;
             min-height: auto;
             margin-bottom: 0;
             padding-right: 20px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .repo-grid.list-view .card-meta {
@@ -1703,14 +1754,10 @@
         </div>
 
         <div class="sidebar-footer">
-            <div class="nav-item" onclick="toggleTheme()">
-                <span id="themeToggleLabel"><svg class="ico"><use href="#i-sun"/></svg>Light Mode</span>
-            </div>
-            <div class="nav-item" onclick="openSettings()">
-                <span><svg class="ico"><use href="#i-settings"/></svg>Settings</span>
-            </div>
-            <div class="nav-item" onclick="document.getElementById('helpModal').style.display='flex'">
-                <span><svg class="ico"><use href="#i-help"/></svg>Help</span>
+            <div class="footer-icon-row">
+                <div class="footer-icon-btn" id="themeToggleLabel" title="Toggle theme" onclick="toggleTheme()"><svg class="ico"><use href="#i-sun"/></svg></div>
+                <div class="footer-icon-btn" title="Settings" onclick="openSettings()"><svg class="ico"><use href="#i-settings"/></svg></div>
+                <div class="footer-icon-btn" title="Help" onclick="document.getElementById('helpModal').style.display='flex'"><svg class="ico"><use href="#i-help"/></svg></div>
             </div>
             <div
                 style="margin-top: 15px; font-size: 11px; color: #666; text-align: center; display: flex; flex-direction: column; gap: 4px; align-items: center;">
@@ -2868,8 +2915,9 @@
             const label = document.getElementById('themeToggleLabel');
             if (label) {
                 label.innerHTML = theme === 'dark'
-                    ? '<svg class="ico"><use href="#i-sun"/></svg>Light Mode'
-                    : '<svg class="ico"><use href="#i-moon"/></svg>Dark Mode';
+                    ? '<svg class="ico"><use href="#i-sun"/></svg>'
+                    : '<svg class="ico"><use href="#i-moon"/></svg>';
+                label.title = theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
             }
         }
 
@@ -3212,9 +3260,9 @@
                         <div class="card-header">
                             <img src="${avatar}" class="repo-icon" alt="icon">
                             <div class="repo-details">
-                                <div style="display: flex; align-items: center; gap: 8px;">
+                                <div class="card-title-row">
                                     <div class="card-title" title="${repo.name}" style="margin:0;">${repo.name}</div>
-                                    <div style="display: flex; gap: 4px; align-items: center;">
+                                    <div class="card-badges">
                                         <div class="badge ${badgeClass}">${badge}</div>
                                         ${visibilityBadge}
                                     </div>
