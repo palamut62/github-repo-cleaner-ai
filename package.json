@@ -1,6 +1,6 @@
 {
   "name": "github-repo-organizer",
-  "version": "2.6.3",
+  "version": "2.6.4",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -29,6 +29,7 @@
       "index.html",
       "assets/**/*",
       "!.env",
+      "!secrets.json",
       "!app-config.json",
       "!operation-history.json"
     ],

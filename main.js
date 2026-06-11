@@ -44,9 +44,14 @@ function createWindow() {
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             nodeIntegration: false,
-            contextIsolation: true
+            contextIsolation: true,
+            sandbox: true
         }
     });
+
+    // Block window.open and in-app navigation away from the bundled UI
+    mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+    mainWindow.webContents.on('will-navigate', (e) => e.preventDefault());
 
     mainWindow.loadFile('index.html');
 
@@ -209,37 +214,90 @@ ipcMain.handle('deleteRepos', async (event, { token, repos }) => {
 });
 
 // 4. Token Management handlers
-ipcMain.handle('getToken', async () => {
+// Secrets are stored OS-encrypted (DPAPI/Keychain/libsecret) via safeStorage.
+// Legacy plaintext .env values are migrated on first read.
+const { safeStorage } = require('electron');
+
+function getSecretsPath() {
+    if (app.isPackaged) {
+        return path.join(app.getPath('userData'), 'secrets.json');
+    }
+    return path.join(__dirname, 'secrets.json');
+}
+
+function loadSecretsFile() {
+    try {
+        return JSON.parse(fs.readFileSync(getSecretsPath(), 'utf-8'));
+    } catch (e) {
+        return {};
+    }
+}
+
+function writeSecret(name, value) {
+    const secrets = loadSecretsFile();
+    if (safeStorage.isEncryptionAvailable()) {
+        secrets[name] = { enc: true, data: safeStorage.encryptString(String(value)).toString('base64') };
+    } else {
+        secrets[name] = { enc: false, data: String(value) };
+    }
+    fs.writeFileSync(getSecretsPath(), JSON.stringify(secrets, null, 2));
+}
+
+function readEnvSecret(envKey) {
     try {
         const envPath = getEnvPath();
-        if (fs.existsSync(envPath)) {
-            const content = fs.readFileSync(envPath, 'utf-8');
-            const match = content.match(/GITHUB_TOKEN=(.+)/);
-            return match ? match[1].trim() : '';
-        }
+        if (!fs.existsSync(envPath)) return '';
+        const match = fs.readFileSync(envPath, 'utf-8').match(new RegExp(`${envKey}=(.+)`));
+        return match ? match[1].trim() : '';
+    } catch (e) {
         return '';
+    }
+}
+
+function scrubEnvSecret(envKey) {
+    try {
+        const envPath = getEnvPath();
+        if (!fs.existsSync(envPath)) return;
+        const content = fs.readFileSync(envPath, 'utf-8')
+            .split('\n').filter(line => !line.startsWith(`${envKey}=`)).join('\n').trim();
+        fs.writeFileSync(envPath, content);
+    } catch (e) { /* best effort */ }
+}
+
+function readSecret(name, legacyEnvKey) {
+    const entry = loadSecretsFile()[name];
+    if (entry) {
+        try {
+            if (entry.enc) return safeStorage.decryptString(Buffer.from(entry.data, 'base64'));
+            return entry.data;
+        } catch (e) {
+            console.error(`Secret decrypt failed for ${name}:`, e);
+        }
+    }
+    // Legacy migration: plaintext .env → encrypted secrets.json
+    const legacy = readEnvSecret(legacyEnvKey);
+    if (legacy) {
+        try {
+            writeSecret(name, legacy);
+            scrubEnvSecret(legacyEnvKey);
+        } catch (e) { /* keep using legacy value */ }
+    }
+    return legacy;
+}
+
+ipcMain.handle('getToken', async () => {
+    try {
+        return readSecret('githubToken', 'GITHUB_TOKEN');
     } catch (e) {
         console.error('Token read error:', e);
         return '';
     }
 });
 
-// ... existing token handlers ...
-
 ipcMain.handle('saveToken', async (event, token) => {
     try {
-        const envPath = getEnvPath();
-        let content = '';
-        if (fs.existsSync(envPath)) {
-            content = fs.readFileSync(envPath, 'utf-8');
-        }
-        // Replace or Append
-        if (content.includes('GITHUB_TOKEN=')) {
-            content = content.replace(/GITHUB_TOKEN=.*/, `GITHUB_TOKEN=${token}`);
-        } else {
-            content += `\nGITHUB_TOKEN=${token}`;
-        }
-        fs.writeFileSync(envPath, content.trim());
+        writeSecret('githubToken', token);
+        scrubEnvSecret('GITHUB_TOKEN');
         return true;
     } catch (e) {
         console.error('Token save error:', e);
@@ -250,13 +308,7 @@ ipcMain.handle('saveToken', async (event, token) => {
 // 5. Router Key Management
 ipcMain.handle('getRouterKey', async () => {
     try {
-        const envPath = getEnvPath();
-        if (fs.existsSync(envPath)) {
-            const content = fs.readFileSync(envPath, 'utf-8');
-            const match = content.match(/ROUTER_KEY=(.+)/);
-            return match ? match[1].trim() : '';
-        }
-        return '';
+        return readSecret('routerKey', 'ROUTER_KEY');
     } catch (e) {
         return '';
     }
@@ -264,17 +316,8 @@ ipcMain.handle('getRouterKey', async () => {
 
 ipcMain.handle('saveRouterKey', async (event, key) => {
     try {
-        const envPath = getEnvPath();
-        let content = '';
-        if (fs.existsSync(envPath)) {
-            content = fs.readFileSync(envPath, 'utf-8');
-        }
-        if (content.includes('ROUTER_KEY=')) {
-            content = content.replace(/ROUTER_KEY=.*/, `ROUTER_KEY=${key}`);
-        } else {
-            content += `\nROUTER_KEY=${key}`;
-        }
-        fs.writeFileSync(envPath, content.trim());
+        writeSecret('routerKey', key);
+        scrubEnvSecret('ROUTER_KEY');
         return true;
     } catch (e) {
         return false;
@@ -453,7 +496,13 @@ ipcMain.on('app:close', () => {
 });
 
 ipcMain.on('open-external', (event, url) => {
-    require('electron').shell.openExternal(url);
+    // Only allow http/https — blocks file://, smb:// and custom protocol abuse
+    try {
+        const parsed = new URL(String(url));
+        if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
+            require('electron').shell.openExternal(parsed.href);
+        }
+    } catch (e) { /* invalid URL — ignore */ }
 });
 
 // 7. AI Description Generator
@@ -1814,7 +1863,7 @@ ipcMain.handle('createAndPushRepos', async (event, { token, repos }) => {
                     const dirPath = path.join(repo.folderPath, dir);
                     if (fs.existsSync(dirPath)) {
                         try {
-                            execSync(`git rm -r --cached "${dir}"`, { cwd: repo.folderPath, stdio: 'pipe' });
+                            execFileSync('git', ['rm', '-r', '--cached', dir], { cwd: repo.folderPath, stdio: 'pipe' });
                             console.log(`[createAndPushRepos] Removed ${dir} from git index`);
                             result.steps.push({ step: `Removed ${dir}/ from git index`, status: 'success' });
                         } catch (e) {
@@ -1863,7 +1912,7 @@ ipcMain.handle('createAndPushRepos', async (event, { token, repos }) => {
                     // Also remove from index if tracked
                     for (const f of largeFiles) {
                         try {
-                            execSync(`git rm --cached "${f}" 2>/dev/null`, { cwd: repo.folderPath, stdio: 'pipe' });
+                            execFileSync('git', ['rm', '--cached', f], { cwd: repo.folderPath, stdio: 'pipe' });
                         } catch (e) {}
                     }
                 }
@@ -1962,7 +2011,7 @@ ipcMain.handle('createAndPushRepos', async (event, { token, repos }) => {
             const authUrl = cloneUrl.replace('https://', `https://${token}@`);
             execFileSync('git', ['remote', 'set-url', 'origin', authUrl], { cwd: repo.folderPath, stdio: 'pipe' });
             try {
-                const pushOutput = execSync(`git push -u origin ${branchName}`, { cwd: repo.folderPath, timeout: 120000, encoding: 'utf8' });
+                const pushOutput = execFileSync('git', ['push', '-u', 'origin', branchName], { cwd: repo.folderPath, timeout: 120000, encoding: 'utf8' });
                 console.log(`[createAndPushRepos] Push output: ${pushOutput}`);
             } catch (pushErr) {
                 const errMsg = pushErr.stderr || pushErr.stdout || pushErr.message;
@@ -2251,7 +2300,7 @@ ipcMain.handle('quickPush', async (event, { folderPath, token, commitMessage }) 
         const qpIgnoredDirs = ['node_modules', '.next', '__pycache__', '.venv', 'venv'];
         for (const dir of qpIgnoredDirs) {
             if (fs.existsSync(path.join(cwd, dir))) {
-                try { execSync(`git rm -r --cached "${dir}"`, { cwd, stdio: 'pipe' }); } catch (e) {}
+                try { execFileSync('git', ['rm', '-r', '--cached', dir], { cwd, stdio: 'pipe' }); } catch (e) {}
             }
         }
 
@@ -2276,7 +2325,7 @@ ipcMain.handle('quickPush', async (event, { folderPath, token, commitMessage }) 
         const authUrl = remoteUrl.replace('https://', `https://${token}@`);
         execFileSync('git', ['remote', 'set-url', 'origin', authUrl], { cwd, stdio: 'pipe' });
         try {
-            execSync(`git push -u origin ${branch}`, { cwd, stdio: 'pipe', timeout: 120000 });
+            execFileSync('git', ['push', '-u', 'origin', branch], { cwd, stdio: 'pipe', timeout: 120000 });
         } finally {
             execFileSync('git', ['remote', 'set-url', 'origin', remoteUrl], { cwd, stdio: 'pipe' });
         }

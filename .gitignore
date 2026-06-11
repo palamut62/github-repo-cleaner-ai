@@ -1,8 +1,9 @@
 # Dependencies
 node_modules/
 
-# Environment variables
+# Environment variables & secrets
 .env
+secrets.json
 
 # Production build artifacts
 dist/

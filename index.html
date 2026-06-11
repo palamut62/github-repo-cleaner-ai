@@ -3265,7 +3265,7 @@
                             <img src="${avatar}" class="repo-icon" alt="icon">
                             <div class="repo-details">
                                 <div class="card-title-row">
-                                    <div class="card-title" title="${repo.name}" style="margin:0;">${repo.name}</div>
+                                    <div class="card-title" title="${escHtml(repo.name)}" style="margin:0;">${escHtml(repo.name)}</div>
                                     <div class="card-badges">
                                         <div class="badge ${badgeClass}">${badge}</div>
                                         ${visibilityBadge}
@@ -3273,8 +3273,8 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="card-desc" title="${repo.description || ''}">
-                            ${repo.description || 'No description provided.'}
+                        <div class="card-desc" title="${escHtml(repo.description || '')}">
+                            ${escHtml(repo.description) || 'No description provided.'}
                         </div>
                         <div class="card-meta">
                             <div style="display: flex; gap: 10px; align-items: center;">
@@ -3905,8 +3905,8 @@
             const repo = result.data;
             const setupHtml = `
                 <div style="margin-bottom: 20px;">
-                    <h4 style="color: var(--text-primary); margin: 0 0 5px 0;">${repo.name}</h4>
-                    <p style="margin: 0; color: var(--text-secondary);">${repo.description || 'No description'}</p>
+                    <h4 style="color: var(--text-primary); margin: 0 0 5px 0;">${escHtml(repo.name)}</h4>
+                    <p style="margin: 0; color: var(--text-secondary);">${escHtml(repo.description) || 'No description'}</p>
                     <span style="font-size: 11px; color: ${repo.private ? 'var(--danger)' : 'var(--accent-green)'};">
                         ${repo.private ? '<svg class="ico" style="width:12px;height:12px;vertical-align:middle;"><use href="#i-lock"/></svg> Private' : '<svg class="ico" style="width:12px;height:12px;vertical-align:middle;"><use href="#i-globe"/></svg> Public'}
                     </span>
@@ -4008,8 +4008,8 @@ npm start</pre>
             const detailHtml = `
                 <!-- Header -->
                 <div style="margin-top: 16px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color);">
-                    <h3 style="margin: 0 0 4px 0; color: var(--text-primary); font-size: 15px; font-weight: 600;">${repo.name}</h3>
-                    <p style="margin: 0 0 10px 0; color: var(--text-secondary); font-size: 12px; line-height: 1.4;">${repo.description || 'No description'}</p>
+                    <h3 style="margin: 0 0 4px 0; color: var(--text-primary); font-size: 15px; font-weight: 600;">${escHtml(repo.name)}</h3>
+                    <p style="margin: 0 0 10px 0; color: var(--text-secondary); font-size: 12px; line-height: 1.4;">${escHtml(repo.description) || 'No description'}</p>
                     <div style="display: flex; gap: 6px; flex-wrap: wrap;">
                         <span style="padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; background: ${repo.private ? 'rgba(248,81,73,0.15)' : 'rgba(63,185,80,0.15)'}; color: ${repo.private ? 'var(--danger)' : 'var(--accent-green)'};">
                             ${repo.private ? 'PRIVATE' : 'PUBLIC'}
