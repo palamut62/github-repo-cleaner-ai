@@ -1,6 +1,6 @@
 {
   "name": "github-repo-organizer",
-  "version": "2.6.4",
+  "version": "2.7.0",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -16,9 +16,18 @@
     "sharp": "^0.34.5"
   },
   "description": "Organize, manage and clean up your GitHub repositories with AI-powered features",
-  "author": "Antigravity",
+  "author": {
+    "name": "Umut Çelik (palamut62)",
+    "email": "palamut62@users.noreply.github.com",
+    "url": "https://github.com/palamut62"
+  },
+  "homepage": "https://github.com/palamut62/github-repo-cleaner-ai#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/palamut62/github-repo-cleaner-ai.git"
+  },
   "build": {
-    "appId": "com.antigravity.github-repo-cleaner",
+    "appId": "com.palamut62.github-repo-organizer",
     "productName": "GitHub Repo Organizer",
     "directories": {
       "output": "dist"
@@ -53,7 +62,7 @@
       "target": ["AppImage", "deb"],
       "icon": "assets/icon.png",
       "category": "Utility",
-      "maintainer": "Antigravity <antigravity@localhost>"
+      "maintainer": "Umut Çelik (palamut62) <palamut62@users.noreply.github.com>"
     },
     "nsis": {
       "oneClick": false,

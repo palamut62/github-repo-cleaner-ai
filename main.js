@@ -8,6 +8,10 @@ let mainWindow;
 let tray = null;
 let currentUser = null; // To cache user info
 
+// Network timeouts so a stuck connection never hangs the app forever
+const GITHUB_TIMEOUT_MS = 30000;
+const OPENROUTER_TIMEOUT_MS = 120000;
+
 // Use userData for writable config, __dirname for dev
 function getEnvPath() {
     if (app.isPackaged) {
@@ -159,6 +163,11 @@ function githubRequest(path, method, token, body = null, extraHeaders = {}) {
             reject(e);
         });
 
+        // Never hang forever: abort the request after a fixed timeout.
+        req.setTimeout(GITHUB_TIMEOUT_MS, () => {
+            req.destroy(new Error(`GitHub isteği zaman aşımına uğradı (${GITHUB_TIMEOUT_MS / 1000}s)`));
+        });
+
         if (body) {
             req.write(JSON.stringify(body));
         }
@@ -205,9 +214,9 @@ ipcMain.handle('deleteRepos', async (event, { token, repos }) => {
             // DELETE /repos/:owner/:repo
             // repoFullName is already "owner/repo"
             await githubRequest(`/repos/${repoFullName}`, 'DELETE', token);
-            results.push({ name: repoFullName, status: 'Silindi' });
+            results.push({ name: repoFullName, status: 'deleted', ok: true });
         } catch (error) {
-            results.push({ name: repoFullName, status: `Hata: ${error.message}` });
+            results.push({ name: repoFullName, status: 'error', ok: false, error: error.message });
         }
     }
     return results;
@@ -298,6 +307,9 @@ ipcMain.handle('saveToken', async (event, token) => {
     try {
         writeSecret('githubToken', token);
         scrubEnvSecret('GITHUB_TOKEN');
+        // Identity cache belongs to the old token — drop it so the next
+        // request re-resolves /user for the newly saved account.
+        currentUser = null;
         return true;
     } catch (e) {
         console.error('Token save error:', e);
@@ -425,6 +437,7 @@ function openRouterRequest(apiKey, readmeContent) {
         });
 
         req.on('error', (e) => resolve(null));
+        req.setTimeout(OPENROUTER_TIMEOUT_MS, () => req.destroy(new Error('OpenRouter timeout')));
         req.write(postData);
         req.end();
     });
@@ -549,6 +562,7 @@ function openRouterDescriptionRequest(apiKey, readmeContent) {
         });
 
         req.on('error', () => resolve(null));
+        req.setTimeout(OPENROUTER_TIMEOUT_MS, () => req.destroy(new Error('OpenRouter timeout')));
         req.write(postData);
         req.end();
     });
@@ -632,6 +646,7 @@ function openRouterReadmeRequest(apiKey, repoName, files) {
         });
 
         req.on('error', () => resolve(null));
+        req.setTimeout(OPENROUTER_TIMEOUT_MS, () => req.destroy(new Error('OpenRouter timeout')));
         req.write(postData);
         req.end();
     });
@@ -864,29 +879,24 @@ ipcMain.handle('syncFork', async (event, { token, fullName }) => {
     try {
         const [owner, repo] = fullName.split('/');
 
+        // Resolve the fork's real default branch instead of guessing main/master
+        let branch = 'main';
+        try {
+            const info = await githubRequest(`/repos/${owner}/${repo}`, 'GET', token);
+            if (info && info.default_branch) branch = info.default_branch;
+        } catch (e) { /* fall back to main */ }
+
         // Use GitHub's merge-upstream API
         const result = await githubRequest(
             `/repos/${owner}/${repo}/merge-upstream`,
             'POST',
             token,
-            { branch: 'main' } // Try main first
+            { branch }
         );
 
         return { success: true, message: result.message || 'Fork synced successfully!' };
     } catch (e) {
-        // Try with master branch if main fails
-        try {
-            const [owner, repo] = fullName.split('/');
-            const result = await githubRequest(
-                `/repos/${owner}/${repo}/merge-upstream`,
-                'POST',
-                token,
-                { branch: 'master' }
-            );
-            return { success: true, message: result.message || 'Fork synced successfully!' };
-        } catch (e2) {
-            return { success: false, error: e2.message };
-        }
+        return { success: false, error: e.message };
     }
 });
 
@@ -1133,6 +1143,7 @@ ipcMain.handle('analyzeAllRepos', async (event, { token }) => {
             const repos = await githubRequest(`/user/repos?per_page=100&page=${page}&sort=updated`, 'GET', token);
             if (repos && repos.length > 0) {
                 allRepos = allRepos.concat(repos);
+                if (repos.length < 100) hasMore = false; // last page — don't waste an extra API call
                 page++;
             } else {
                 hasMore = false;
@@ -1325,6 +1336,7 @@ Write in a clear, educational tone. Be thorough but concise. Output ONLY the mar
         });
 
         req.on('error', (e) => resolve(null));
+        req.setTimeout(OPENROUTER_TIMEOUT_MS, () => req.destroy(new Error('OpenRouter timeout')));
         req.write(postData);
         req.end();
     });
@@ -1475,6 +1487,7 @@ function openRouterCommitRequest(apiKey, commits) {
         });
 
         req.on('error', () => resolve([]));
+        req.setTimeout(OPENROUTER_TIMEOUT_MS, () => req.destroy(new Error('OpenRouter timeout')));
         req.write(postData);
         req.end();
     });
@@ -1798,21 +1811,23 @@ ipcMain.handle('createAndPushRepos', async (event, { token, repos }) => {
             const gitDir = path.join(repo.folderPath, '.git');
             if (fs.existsSync(gitDir)) {
                 // Check if large/ignored files are baked into git history
+                let trackedLarge = '';
                 try {
-                    const trackedLarge = execSync(
+                    trackedLarge = execSync(
                         'git log --all --diff-filter=A --name-only --format="" -- "node_modules/*" "*.exe"',
                         { cwd: repo.folderPath, stdio: ['pipe','pipe','pipe'], timeout: 10000 }
                     ).toString().trim();
-                    if (trackedLarge.length > 0) {
-                        // Large files in history — nuke .git and start fresh
-                        fs.rmSync(gitDir, { recursive: true, force: true });
-                        console.log(`[createAndPushRepos] Removed dirty .git history (had large files in commits)`);
-                        result.steps.push({ step: 'Cleaned dirty git history (large files detected)', status: 'success' });
-                    }
                 } catch (e) {
-                    // If check fails, be safe and re-init
+                    // Probe failed (corrupt git? weird state?) — NEVER destroy user
+                    // history because of a failed check; proceed with existing .git.
+                    console.warn(`[createAndPushRepos] Dirty-history probe failed, keeping existing .git:`, e.message);
+                    result.steps.push({ step: 'History check skipped (probe failed)', status: 'info' });
+                }
+                if (trackedLarge.length > 0) {
+                    // Large files in history — nuke .git and start fresh
                     fs.rmSync(gitDir, { recursive: true, force: true });
-                    console.log(`[createAndPushRepos] Removed .git (check failed, re-init for safety)`);
+                    console.log(`[createAndPushRepos] Removed dirty .git history (had large files in commits)`);
+                    result.steps.push({ step: 'Cleaned dirty git history (large files detected)', status: 'success' });
                 }
             }
             if (!fs.existsSync(gitDir)) {
@@ -1831,8 +1846,8 @@ ipcMain.handle('createAndPushRepos', async (event, { token, repos }) => {
             execFileSync('git', ['config', 'user.email', userEmail], { cwd: repo.folderPath, stdio: 'pipe' });
             execFileSync('git', ['config', 'user.name', userName], { cwd: repo.folderPath, stdio: 'pipe' });
 
-            // 4b. Auto-generate .gitignore (always if none exists, to prevent large files like node_modules)
-            {
+            // 4b. Auto-generate .gitignore (unless user opted out) to prevent large files like node_modules
+            if (repo.autoGitignore !== false) {
                 const detectedType = repo.detectedType || detectProjectType(repo.folderPath);
                 const gitignorePath = path.join(repo.folderPath, '.gitignore');
                 const content = getGitignore(detectedType);
@@ -2008,19 +2023,27 @@ ipcMain.handle('createAndPushRepos', async (event, { token, repos }) => {
                 branchName = execSync('git branch --show-current', { cwd: repo.folderPath }).toString().trim() || 'main';
             } catch (e) {}
 
-            const authUrl = cloneUrl.replace('https://', `https://${token}@`);
-            execFileSync('git', ['remote', 'set-url', 'origin', authUrl], { cwd: repo.folderPath, stdio: 'pipe' });
+            // Push via a one-shot authenticated URL argument instead of writing
+            // the token into .git/config with `remote set-url`. The token only
+            // lives in the child process argv for the duration of the push.
+            const pushUrl = cloneUrl.replace('https://', `https://${token}@`);
             try {
-                const pushOutput = execFileSync('git', ['push', '-u', 'origin', branchName], { cwd: repo.folderPath, timeout: 120000, encoding: 'utf8' });
+                const pushOutput = execFileSync(
+                    'git',
+                    ['push', pushUrl, `refs/heads/${branchName}:refs/heads/${branchName}`],
+                    {
+                        cwd: repo.folderPath,
+                        timeout: 120000,
+                        encoding: 'utf8',
+                        env: { ...process.env, GIT_TERMINAL_PROMPT: '0', GCM_INTERACTIVE: 'Never' }
+                    }
+                );
                 console.log(`[createAndPushRepos] Push output: ${pushOutput}`);
             } catch (pushErr) {
                 const errMsg = pushErr.stderr || pushErr.stdout || pushErr.message;
                 console.error(`[createAndPushRepos] Push FAILED:`, errMsg);
-                // Restore clean URL before re-throwing
-                execFileSync('git', ['remote', 'set-url', 'origin', cloneUrl], { cwd: repo.folderPath, stdio: 'pipe' });
                 throw new Error(`Push failed: ${errMsg}`);
             }
-            execFileSync('git', ['remote', 'set-url', 'origin', cloneUrl], { cwd: repo.folderPath, stdio: 'pipe' });
 
             result.steps.push({ step: 'Pushed to GitHub', status: 'success' });
 
@@ -2319,16 +2342,29 @@ ipcMain.handle('quickPush', async (event, { folderPath, token, commitMessage }) 
             return { success: false, error: 'No remote origin set' };
         }
 
+        // Sanitize any credentials an older version may have baked into .git/config
+        const cleanUrl = remoteUrl.replace(/^https:\/\/[^@/]+@/, 'https://');
+        if (cleanUrl !== remoteUrl) {
+            try {
+                execFileSync('git', ['remote', 'set-url', 'origin', cleanUrl], { cwd, stdio: 'pipe' });
+                console.log('[quickPush] Stripped leaked credentials from origin URL');
+            } catch (e) {}
+            remoteUrl = cleanUrl;
+        }
+
         const branch = execSync('git branch --show-current', { cwd, timeout: 5000 }).toString().trim() || 'main';
 
-        // Auth push
-        const authUrl = remoteUrl.replace('https://', `https://${token}@`);
-        execFileSync('git', ['remote', 'set-url', 'origin', authUrl], { cwd, stdio: 'pipe' });
-        try {
-            execFileSync('git', ['push', '-u', 'origin', branch], { cwd, stdio: 'pipe', timeout: 120000 });
-        } finally {
-            execFileSync('git', ['remote', 'set-url', 'origin', remoteUrl], { cwd, stdio: 'pipe' });
-        }
+        // Auth push via one-shot URL argument — the token never touches .git/config
+        const pushUrl = remoteUrl.replace('https://', `https://${token}@`);
+        execFileSync(
+            'git',
+            ['push', pushUrl, `refs/heads/${branch}:refs/heads/${branch}`],
+            {
+                cwd,
+                timeout: 120000,
+                env: { ...process.env, GIT_TERMINAL_PROMPT: '0', GCM_INTERACTIVE: 'Never' }
+            }
+        );
 
         return { success: true, message: 'Pushed successfully!' };
     } catch (e) {

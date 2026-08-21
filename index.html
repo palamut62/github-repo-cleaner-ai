@@ -4,119 +4,140 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!--
+      CSP: renderer makes NO network calls of its own (all data flows through
+      the sandboxed main process via preload IPC), so connect-src is locked to
+      'none'. Inline scripts/styles stay allowed because the single-file UI
+      relies on them; remote script/plugin/frame sources are fully blocked.
+    -->
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
     <title>GitHub Repo Organizer</title>
     <!-- Font: Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* === Atom "One Dark" palette === */
+        /* ══════════════════════════════════════════════════════════════════
+           GITHUB REPO ORGANIZER — DESIGN SYSTEM v3 "Modern Studio"
+           Dark-first, layered surfaces, indigo→violet accent, soft elevation
+           ══════════════════════════════════════════════════════════════════ */
+
+        /* === Design tokens — DARK (default) === */
         :root, [data-theme="dark"] {
-            --bg-body: #282c34;       /* editor / main area */
-            --bg-sidebar: #21252b;    /* tree-view sidebar & panels */
-            --bg-card: #2c313c;       /* cards on main bg */
-            --bg-input: #1d1f23;      /* inputs / darkest surface */
-            --border-color: #181a1f;  /* hairline borders */
-            --text-primary: #d7dae0;  /* bright text */
-            --text-secondary: #828997;/* muted text */
-            --accent-green: #98c379;
-            --accent-yellow: #e5c07b;
-            --accent-blue: #528bff;   /* One Dark UI accent */
-            --accent-purple: #c678dd;
-            --danger: #e06c75;
+            /* surfaces */
+            --bg-body: #14171f;         /* main canvas */
+            --bg-sidebar: #0f1219;      /* sidebar / chrome */
+            --bg-card: #1c212e;         /* cards & panels */
+            --bg-card-hover: #222838;   /* card hover */
+            --bg-input: #12151e;        /* inputs & wells */
+            --bg-elevated: #262d3f;     /* elevated surfaces */
+            /* hairlines */
+            --border-color: #262c3c;
+            --border-soft: rgba(255, 255, 255, 0.05);
+            --row-border: rgba(255, 255, 255, 0.055);
+            /* text */
+            --text-primary: #e7eaf3;
+            --text-secondary: #8b95ab;
+            /* accents */
+            --accent: #6d7cff;          /* primary action */
+            --accent-2: #9d6bff;        /* gradient partner */
+            --accent-soft: rgba(109, 124, 255, 0.14);
+            --accent-blue: #5a8bff;
+            --accent-green: #3fd68f;
+            --accent-yellow: #f5b93e;
+            --accent-purple: #a78bfa;
+            --danger: #f4636e;
+            --danger-soft: rgba(244, 99, 110, 0.14);
+            /* interaction */
+            --hover-overlay: rgba(255, 255, 255, 0.055);
+            --active-overlay: rgba(255, 255, 255, 0.09);
+            --ring: rgba(109, 124, 255, 0.35);
+            /* elevation */
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+            --shadow-md: 0 8px 24px -6px rgba(0, 0, 0, 0.5);
+            --shadow-lg: 0 16px 48px -12px rgba(0, 0, 0, 0.65);
+            --shadow-accent: 0 4px 14px -2px rgba(109, 124, 255, 0.45);
+            /* misc */
+            --scrollbar-thumb: rgba(255, 255, 255, 0.14);
+            --scrollbar-thumb-hover: rgba(255, 255, 255, 0.26);
+            --overlay-bg: rgba(6, 8, 14, 0.72);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 20px;
         }
 
-        /* === Atom "One Light" palette === */
+        /* === Design tokens — LIGHT === */
         [data-theme="light"] {
-            --bg-body: #fafafa;
-            --bg-sidebar: #f0f1f3;
+            --bg-body: #f3f5f9;
+            --bg-sidebar: #eaeef5;
             --bg-card: #ffffff;
-            --bg-input: #eaecef;
-            --border-color: #d3d6db;
-            --text-primary: #383a42;
-            --text-secondary: #696c77;
-            --accent-green: #50a14f;
-            --accent-yellow: #c18401;
-            --accent-blue: #4078f2;
-            --accent-purple: #a626a4;
-            --danger: #e45649;
+            --bg-card-hover: #f7f9fd;
+            --bg-input: #eef1f7;
+            --bg-elevated: #ffffff;
+            --border-color: #d9dee8;
+            --border-soft: rgba(15, 23, 42, 0.06);
+            --row-border: rgba(15, 23, 42, 0.065);
+            --text-primary: #1c2333;
+            --text-secondary: #5d6a82;
+            --accent: #5468f0;
+            --accent-2: #8b5cf6;
+            --accent-soft: rgba(84, 104, 240, 0.12);
+            --accent-blue: #3b74e8;
+            --accent-green: #189a5a;
+            --accent-yellow: #b97e0a;
+            --accent-purple: #8b5cf6;
+            --danger: #dc4b57;
+            --danger-soft: rgba(220, 75, 87, 0.12);
+            --hover-overlay: rgba(15, 23, 42, 0.05);
+            --active-overlay: rgba(15, 23, 42, 0.09);
+            --ring: rgba(84, 104, 240, 0.3);
+            --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.08);
+            --shadow-md: 0 8px 24px -8px rgba(15, 23, 42, 0.18);
+            --shadow-lg: 0 20px 48px -16px rgba(15, 23, 42, 0.28);
+            --shadow-accent: 0 4px 14px -2px rgba(84, 104, 240, 0.35);
+            --scrollbar-thumb: rgba(15, 23, 42, 0.18);
+            --scrollbar-thumb-hover: rgba(15, 23, 42, 0.3);
+            --overlay-bg: rgba(15, 23, 42, 0.45);
         }
 
-        [data-theme="light"] .win-titlebar {
-            background: #ffffff;
-        }
-
-        [data-theme="light"] .nav-item:hover,
-        [data-theme="light"] .nav-item.active {
-            background-color: rgba(0, 0, 0, 0.06);
-        }
-
-        [data-theme="light"] .nav-category-header:hover {
-            background: rgba(0, 0, 0, 0.04);
-        }
-
-        [data-theme="light"] .modal-close-btn {
-            color: #6b7280;
-        }
-
-        [data-theme="light"] .btn-primary {
-            background: #2563eb;
-        }
-
-        [data-theme="light"] .status-chip {
-            border-color: #d1d5db;
-        }
-
+        /* === Base === */
         body {
             margin: 0;
-            padding: 0 0 24px 0;
+            padding: 0;
             box-sizing: border-box;
-            font-family: 'Inter', sans-serif;
+            font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+            font-size: 13px;
             background-color: var(--bg-body);
             color: var(--text-primary);
             overflow: hidden;
             display: flex;
             height: 100vh;
             user-select: none;
+            -webkit-font-smoothing: antialiased;
+            text-rendering: optimizeLegibility;
         }
 
-        /* === Atom-style bottom status bar === */
-        /* --- Sidebar --- */
-        .sidebar {
-            width: 250px;
-            background-color: var(--bg-sidebar);
-            display: flex;
-            flex-direction: column;
-            border-right: 1px solid var(--border-color);
-            padding-top: 32px;
-            /* Space for Windows Title Bar */
-            flex-shrink: 0;
-            position: relative;
-            overflow: hidden;
+        ::selection { background: var(--accent-soft); color: var(--text-primary); }
+
+        /* Visible, modern thin scrollbars (was: globally hidden) */
+        ::-webkit-scrollbar { width: 10px; height: 10px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb {
+            background: var(--scrollbar-thumb);
+            border-radius: 8px;
+            border: 3px solid transparent;
+            background-clip: padding-box;
+        }
+        ::-webkit-scrollbar-thumb:hover { background-color: var(--scrollbar-thumb-hover); }
+        ::-webkit-scrollbar-corner { background: transparent; }
+
+        button { font-family: inherit; }
+        button:focus-visible, input:focus-visible, select:focus-visible {
+            outline: 2px solid var(--ring);
+            outline-offset: 1px;
         }
 
-        .sidebar-content {
-            flex: 1;
-            overflow-y: auto;
-            overflow-x: hidden;
-        }
-
-        /* Sidebar scrollbar styling */
-        .sidebar-content::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .sidebar-content::-webkit-scrollbar-track {
-            background: var(--bg-sidebar);
-        }
-
-        .sidebar-content::-webkit-scrollbar-thumb {
-            background: var(--border-color);
-            border-radius: 3px;
-        }
-
-        .sidebar-content::-webkit-scrollbar-thumb:hover {
-            background: var(--text-secondary);
-        }
-
+        /* === Windows titlebar === */
         .win-titlebar {
             position: fixed;
             top: 0;
@@ -133,6 +154,7 @@
 
         .win-titlebar-title {
             font-size: 12px;
+            font-weight: 500;
             color: var(--text-secondary);
             margin-left: 12px;
             display: flex;
@@ -165,11 +187,10 @@
             align-items: center;
             justify-content: center;
             font-family: 'Segoe MDL2 Assets', 'Segoe Fluent Icons', sans-serif;
+            transition: background 0.12s, color 0.12s;
         }
 
-        .win-btn:hover {
-            background: rgba(255,255,255,0.08);
-        }
+        .win-btn:hover { background: var(--hover-overlay); color: var(--text-primary); }
 
         .win-btn-close:hover {
             background: #e81123;
@@ -182,147 +203,39 @@
             fill: currentColor;
         }
 
-        .nav-group {
-            padding: 4px 12px;
-        }
-
-        .nav-title {
-            font-size: 13px;
-            text-transform: uppercase;
-            color: var(--text-secondary);
-            font-weight: 700;
-            margin-bottom: 0;
-        }
-
-        .nav-category {
-            margin-bottom: 2px;
-        }
-
-        .nav-category-header {
+        /* === Sidebar === */
+        .sidebar {
+            width: 250px;
+            background-color: var(--bg-sidebar);
             display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 8px 12px;
-            cursor: pointer;
-            border-radius: 6px;
-            transition: background 0.2s;
-            user-select: none;
-        }
-
-        .nav-category-header:hover {
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        .nav-category-header .nav-title {
-            margin-bottom: 0;
-            pointer-events: none;
-        }
-
-        .nav-category-arrow {
-            font-size: 10px;
-            color: var(--text-secondary);
-            transition: transform 0.2s;
-        }
-
-        .nav-category.collapsed .nav-category-arrow {
-            transform: rotate(-90deg);
-        }
-
-        .nav-category-body {
-            overflow: hidden;
-            max-height: 500px;
-            transition: max-height 0.25s ease;
-            padding-left: 4px;
-        }
-
-        .nav-category.collapsed .nav-category-body {
-            max-height: 0;
-        }
-
-        .nav-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 5px 12px 5px 10px;
-            margin-bottom: 1px;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background 0.15s, color 0.15s;
-            font-size: 12px;
-            color: var(--text-secondary);
-            position: relative;
-        }
-
-        .nav-item:hover {
-            background-color: rgba(255, 255, 255, 0.05);
-            color: var(--text-primary);
-        }
-
-        .nav-item.active {
-            background-color: rgba(82, 139, 255, 0.14);
-            color: var(--text-primary);
-        }
-
-        /* Atom-style left accent bar on active item */
-        .nav-item.active::before {
-            content: "";
-            position: absolute;
-            left: 0;
-            top: 4px;
-            bottom: 4px;
-            width: 2px;
-            border-radius: 2px;
-            background: var(--accent-blue);
-        }
-
-        /* nav item label wraps icon + text */
-        .nav-item > span:first-child {
-            display: inline-flex;
-            align-items: center;
-            gap: 9px;
-        }
-
-        /* Monochrome line icons */
-        .ico {
-            width: 16px;
-            height: 16px;
+            flex-direction: column;
+            border-right: 1px solid var(--border-color);
+            padding-top: 32px;
+            /* Space for Windows Title Bar */
             flex-shrink: 0;
-            stroke: currentColor;
-            fill: none;
-            stroke-width: 1.8;
-            stroke-linecap: round;
-            stroke-linejoin: round;
-            opacity: 0.85;
+            position: relative;
+            overflow: hidden;
         }
-        [data-theme="light"] .nav-item.active::before { background: var(--accent-blue); }
 
-        /* Per-row action buttons (clone / delete) in repo list */
-        .row-action-btn {
-            background: none;
-            border: 1px solid var(--border-color);
-            border-radius: 5px;
-            padding: 3px 6px;
-            cursor: pointer;
-            color: var(--text-secondary);
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            transition: background 0.15s, color 0.15s, border-color 0.15s;
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 6px 0 10px;
         }
-        .row-action-btn:hover {
-            background: var(--bg-input);
-            color: var(--text-primary);
-            border-color: var(--accent-blue);
+
+        .sidebar-content::-webkit-scrollbar { width: 8px; }
+        .sidebar-content::-webkit-scrollbar-track { background: transparent; }
+        .sidebar-content::-webkit-scrollbar-thumb {
+            background: var(--scrollbar-thumb);
+            border-radius: 8px;
+            border: 2px solid transparent;
+            background-clip: padding-box;
         }
-        .row-action-btn .ico { width: 14px; height: 14px; opacity: 1; }
-        .row-action-danger:hover {
-            color: var(--danger);
-            border-color: var(--danger);
-            background: rgba(224, 108, 117, 0.12);
-        }
+        .sidebar-content::-webkit-scrollbar-thumb:hover { background-color: var(--scrollbar-thumb-hover); }
 
         .sidebar-header {
-            padding: 12px 20px;
+            padding: 14px 20px;
             border-bottom: 1px solid var(--border-color);
             background-color: var(--bg-sidebar);
             flex-shrink: 0;
@@ -348,14 +261,14 @@
             justify-content: center;
             width: 34px;
             height: 34px;
-            border-radius: 8px;
+            border-radius: var(--radius-sm);
             cursor: pointer;
             color: var(--text-secondary);
-            transition: background-color 0.15s, color 0.15s;
+            transition: background-color 0.15s, color 0.15s, transform 0.15s;
         }
 
         .footer-icon-btn:hover {
-            background-color: var(--bg-input);
+            background-color: var(--hover-overlay);
             color: var(--text-primary);
         }
 
@@ -364,7 +277,170 @@
             height: 18px;
         }
 
-        /* --- Main Content --- */
+        /* --- Sidebar navigation --- */
+        .nav-group {
+            padding: 4px 12px;
+        }
+
+        .nav-title {
+            font-size: 10.5px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-secondary);
+            font-weight: 700;
+            margin-bottom: 0;
+        }
+
+        .nav-category {
+            margin-bottom: 2px;
+        }
+
+        .nav-category-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: var(--radius-sm);
+            transition: background 0.15s;
+            user-select: none;
+        }
+
+        .nav-category-header:hover { background: var(--hover-overlay); }
+
+        .nav-category-header .nav-title {
+            margin-bottom: 0;
+            pointer-events: none;
+        }
+
+        .nav-category-arrow {
+            font-size: 10px;
+            color: var(--text-secondary);
+            transition: transform 0.2s;
+        }
+
+        .nav-category.collapsed .nav-category-arrow {
+            transform: rotate(-90deg);
+        }
+
+        .nav-category-body {
+            overflow: hidden;
+            max-height: 600px;
+            transition: max-height 0.25s ease;
+            padding-left: 4px;
+        }
+
+        .nav-category.collapsed .nav-category-body {
+            max-height: 0;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 12px 6px 10px;
+            margin-bottom: 1px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: background 0.14s, color 0.14s;
+            font-size: 12.5px;
+            color: var(--text-secondary);
+            position: relative;
+        }
+
+        .nav-item:hover {
+            background-color: var(--hover-overlay);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active {
+            background: linear-gradient(90deg, var(--accent-soft), rgba(157, 107, 255, 0.08));
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        /* Glowing left accent bar on the active item */
+        .nav-item.active::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 5px;
+            bottom: 5px;
+            width: 3px;
+            border-radius: 3px;
+            background: linear-gradient(180deg, var(--accent), var(--accent-2));
+            box-shadow: 0 0 8px var(--ring);
+        }
+
+        /* nav item label wraps icon + text */
+        .nav-item > span:first-child {
+            display: inline-flex;
+            align-items: center;
+            gap: 9px;
+        }
+
+        /* Count pill used across sidebar filter items (was unstyled!) */
+        .nav-badge {
+            min-width: 20px;
+            padding: 1px 7px;
+            border-radius: 20px;
+            background: var(--hover-overlay);
+            border: 1px solid var(--border-soft);
+            color: var(--text-secondary);
+            font-size: 10px;
+            font-weight: 700;
+            text-align: center;
+            line-height: 15px;
+            flex-shrink: 0;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .nav-item.active .nav-badge {
+            background: var(--accent-soft);
+            border-color: transparent;
+            color: var(--accent);
+        }
+
+        /* Monochrome line icons */
+        .ico {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 1.8;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            opacity: 0.85;
+        }
+
+        /* Per-row action buttons (clone / delete) in repo list */
+        .row-action-btn {
+            background: none;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 3px 6px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.1s;
+        }
+        .row-action-btn:hover {
+            background: var(--accent-soft);
+            color: var(--accent-blue);
+            border-color: var(--accent-blue);
+        }
+        .row-action-btn:active { transform: scale(0.94); }
+        .row-action-btn .ico { width: 14px; height: 14px; opacity: 1; }
+        .row-action-danger:hover {
+            color: var(--danger);
+            border-color: var(--danger);
+            background: var(--danger-soft);
+        }
+
+        /* === Main content === */
         .main-content {
             flex: 1;
             display: flex;
@@ -375,7 +451,7 @@
         }
 
         .header {
-            padding: 20px 30px;
+            padding: 18px 30px 14px;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -383,24 +459,15 @@
         }
 
         .page-title {
-            font-size: 24px;
+            font-size: 20px;
             font-weight: 700;
-        }
-
-        .search-bar {
-            display: flex;
-            gap: 10px;
-            -webkit-app-region: no-drag;
-        }
-
-        .page-title {
-            font-size: 18px;
-            font-weight: 700;
+            letter-spacing: -0.3px;
             color: var(--text-primary);
         }
 
         .search-bar {
             display: flex;
+            align-items: center;
             gap: 8px;
             -webkit-app-region: no-drag;
         }
@@ -409,68 +476,106 @@
             background: var(--bg-input);
             border: 1px solid var(--border-color);
             color: var(--text-primary);
-            padding: 6px 10px;
-            border-radius: 6px;
+            padding: 7px 11px;
+            border-radius: var(--radius-sm);
             font-family: inherit;
             outline: none;
             font-size: 12px;
+            transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
         }
+        .input-dark:hover { border-color: var(--text-secondary); }
+        .input-dark:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--ring);
+        }
+        .input-dark::placeholder { color: var(--text-secondary); opacity: 0.7; }
 
+        /* === Buttons === */
         .btn-primary {
-            background: var(--accent-green);
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
             color: #fff;
             border: none;
-            padding: 6px 12px;
-            border-radius: 6px;
+            padding: 7px 14px;
+            border-radius: var(--radius-sm);
             font-weight: 600;
             cursor: pointer;
             font-size: 12px;
+            transition: filter 0.15s, transform 0.1s, box-shadow 0.15s;
+            box-shadow: var(--shadow-accent);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+        .btn-primary:hover {
+            filter: brightness(1.12);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px -2px var(--ring);
+        }
+        .btn-primary:active { transform: translateY(0); filter: brightness(0.96); }
+        .btn-primary:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+            transform: none;
+            filter: grayscale(0.3);
         }
 
         .btn-dark {
-            background: var(--bg-input);
+            background: var(--bg-card);
             color: var(--text-primary);
             border: 1px solid var(--border-color);
-            padding: 8px 12px;
-            border-radius: 6px;
+            padding: 8px 13px;
+            border-radius: var(--radius-sm);
             cursor: pointer;
+            font-size: 12px;
+            transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.1s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
         }
+        .btn-dark:hover {
+            background: var(--bg-elevated);
+            border-color: var(--accent);
+            color: var(--text-primary);
+        }
+        .btn-dark:active { transform: scale(0.97); }
 
-        /* --- Grid Layout --- */
+        /* === Repo grid & cards === */
         .repo-grid {
-            padding: 0 30px 30px 30px;
+            padding: 4px 30px 30px 30px;
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-            gap: 12px;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 14px;
             overflow-y: auto;
             flex: 1;
-        }
-
-        ::-webkit-scrollbar {
-            display: none;
+            align-content: start;
         }
 
         .repo-card {
             background-color: var(--bg-card);
-            border-radius: 12px;
+            border-radius: var(--radius-md);
             padding: 14px;
             display: flex;
             flex-direction: column;
             gap: 6px;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s;
             position: relative;
-            border: 1px solid transparent;
+            border: 1px solid var(--border-soft);
+            box-shadow: var(--shadow-sm);
         }
 
         .repo-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-md);
             border-color: var(--border-color);
+            background-color: var(--bg-card-hover);
         }
 
         .repo-card.selected {
-            border: 1px solid var(--accent-blue);
-            background-color: rgba(88, 166, 255, 0.1);
+            border: 1px solid var(--accent);
+            background-color: var(--accent-soft);
+            box-shadow: 0 0 0 1px var(--accent), var(--shadow-sm);
         }
 
         .card-header {
@@ -502,8 +607,9 @@
         .repo-icon {
             width: 32px;
             height: 32px;
-            border-radius: 8px;
+            border-radius: var(--radius-sm);
             object-fit: cover;
+            box-shadow: var(--shadow-sm);
         }
 
         .repo-details {
@@ -530,6 +636,7 @@
             overflow: hidden;
             min-height: auto;
             margin-bottom: 4px;
+            line-height: 1.45;
         }
 
         .card-meta {
@@ -548,13 +655,8 @@
             background: transparent !important;
         }
 
-        .badge-source {
-            color: var(--accent-green);
-        }
-
-        .badge-fork {
-            color: var(--accent-blue);
-        }
+        .badge-source { color: var(--accent-green); }
+        .badge-fork   { color: var(--accent-blue); }
 
         .badge-star {
             color: var(--accent-yellow);
@@ -563,28 +665,14 @@
             gap: 4px;
         }
 
-        .badge-license {
-            color: var(--accent-blue);
-            opacity: 0.8;
-        }
-
-        .badge-mit {
-            color: var(--accent-green);
-            font-weight: 700;
-        }
-
-        .badge-no-license {
-            color: var(--danger);
-            opacity: 0.6;
-        }
-
-        .badge-public {
-            color: var(--accent-green);
-        }
+        .badge-license    { color: var(--accent-blue); opacity: 0.8; }
+        .badge-mit        { color: var(--accent-green); font-weight: 700; }
+        .badge-no-license { color: var(--danger); opacity: 0.6; }
+        .badge-public     { color: var(--accent-green); }
 
         .badge-private {
             color: var(--danger);
-            background: rgba(248, 81, 73, 0.1) !important;
+            background: var(--danger-soft) !important;
             padding: 0 4px;
             border-radius: 4px;
         }
@@ -594,7 +682,7 @@
             top: 20px;
             right: 20px;
             transform: scale(1.2);
-            accent-color: var(--accent-blue);
+            accent-color: var(--accent);
             cursor: pointer;
         }
 
@@ -602,22 +690,27 @@
         .repo-grid.list-view {
             display: flex;
             flex-direction: column;
-            gap: 2px;
+            gap: 3px;
         }
 
         .repo-grid.list-view .repo-card {
             flex-direction: row;
             align-items: center;
-            padding: 7px 16px;
-            border-radius: 5px;
+            padding: 8px 16px;
+            border-radius: var(--radius-sm);
             overflow: hidden;
+            box-shadow: none;
         }
 
         .repo-grid.list-view .repo-card:hover {
             transform: none;
             box-shadow: none;
-            background: var(--bg-input);
+            background: var(--bg-card-hover);
             border-color: var(--border-color);
+        }
+
+        .repo-grid.list-view .repo-card.selected {
+            box-shadow: 0 0 0 1px var(--accent);
         }
 
         .repo-grid.list-view .card-header {
@@ -653,9 +746,9 @@
             margin-right: 15px;
         }
 
-        /* --- Footer --- */
+        /* --- Footer (list pagination) --- */
         .footer-controls {
-            padding: 15px 30px;
+            padding: 14px 30px;
             border-top: 1px solid var(--border-color);
             background: var(--bg-body);
             display: flex;
@@ -663,36 +756,64 @@
             align-items: center;
         }
 
-        /* --- Modals (Reuse existing styles mostly) --- */
+        /* === Modals === */
+        @keyframes overlayIn {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+
+        @keyframes modalIn {
+            from { opacity: 0; transform: translateY(14px) scale(0.97); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
         .modal-overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.8);
+            background: var(--overlay-bg);
+            backdrop-filter: blur(10px) saturate(1.1);
+            -webkit-backdrop-filter: blur(10px) saturate(1.1);
             display: none;
             align-items: center;
             justify-content: center;
             z-index: 2000;
+            animation: overlayIn 0.18s ease-out;
         }
 
         .modal-box {
             background: var(--bg-card);
-            padding: 25px;
-            border-radius: 16px;
+            padding: 26px;
+            border-radius: var(--radius-xl);
             border: 1px solid var(--border-color);
             max-width: 500px;
             width: 90%;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            box-shadow: var(--shadow-lg);
+            position: relative;
+            overflow: hidden;
+            animation: modalIn 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+        }
+
+        /* Signature gradient hairline on top of every dialog */
+        .modal-box::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent), var(--accent-2), var(--accent-blue));
+            opacity: 0.9;
         }
 
         .modal-close-btn {
             position: absolute;
-            top: 8px;
-            right: 8px;
-            width: 32px;
-            height: 32px;
+            top: 12px;
+            right: 12px;
+            width: 30px;
+            height: 30px;
             border: none;
             background: transparent;
             color: var(--text-secondary);
@@ -701,20 +822,21 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 4px;
+            border-radius: var(--radius-sm);
             z-index: 10;
-            transition: background 0.15s, color 0.15s;
+            transition: background 0.15s, color 0.15s, transform 0.1s;
             line-height: 1;
         }
 
         .modal-close-btn:hover {
-            background: #e81123;
-            color: white;
+            background: var(--danger-soft);
+            color: var(--danger);
+            transform: rotate(90deg);
         }
 
         .settings-tab {
-            padding: 6px 14px;
-            font-size: 11px;
+            padding: 8px 16px;
+            font-size: 11.5px;
             font-weight: 600;
             color: var(--text-secondary);
             cursor: pointer;
@@ -723,21 +845,30 @@
         }
         .settings-tab:hover { color: var(--text-primary); }
         .settings-tab.active {
-            color: var(--accent-blue);
-            border-bottom-color: var(--accent-blue);
+            color: var(--accent);
+            border-bottom-color: var(--accent);
         }
 
         .auth-input {
             width: 100%;
-            padding: 10px;
+            padding: 10px 12px;
             margin-top: 5px;
             margin-bottom: 15px;
             background: var(--bg-input);
             border: 1px solid var(--border-color);
             color: var(--text-primary);
-            border-radius: 6px;
+            border-radius: var(--radius-sm);
             box-sizing: border-box;
+            font-family: inherit;
+            font-size: 12.5px;
+            transition: border-color 0.15s, box-shadow 0.15s;
         }
+        .auth-input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--ring);
+        }
+        .auth-input::placeholder { color: var(--text-secondary); opacity: 0.6; }
 
         /* Masked key field with show/hide toggle */
         .key-field { position: relative; }
@@ -760,7 +891,17 @@
         .key-field .key-toggle:hover { color: var(--text-primary); }
         .key-field .key-toggle .ico { width: 16px; height: 16px; }
 
-        /* Toast Notifications */
+        /* === Toast notifications === */
+        @keyframes slideIn {
+            from { transform: translateX(110%); opacity: 0; }
+            to   { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to   { transform: translateX(110%); opacity: 0; }
+        }
+
         .toast-container {
             position: fixed;
             top: 60px;
@@ -775,43 +916,29 @@
         .toast {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
-            border-radius: 10px;
-            padding: 14px 20px;
+            border-radius: var(--radius-md);
+            padding: 13px 16px;
             min-width: 280px;
-            max-width: 400px;
+            max-width: 420px;
             display: flex;
             align-items: flex-start;
             gap: 12px;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
-            animation: slideIn 0.3s ease-out;
+            box-shadow: var(--shadow-lg);
+            animation: slideIn 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.1);
             pointer-events: auto;
-            backdrop-filter: blur(10px);
         }
 
-        .toast.success {
-            border-left: 4px solid var(--accent-green);
-        }
-
-        .toast.error {
-            border-left: 4px solid var(--danger);
-        }
-
-        .toast.warning {
-            border-left: 4px solid var(--accent-yellow);
-        }
-
-        .toast.info {
-            border-left: 4px solid var(--accent-blue);
-        }
+        .toast.success { border-left: 4px solid var(--accent-green); }
+        .toast.error   { border-left: 4px solid var(--danger); }
+        .toast.warning { border-left: 4px solid var(--accent-yellow); }
+        .toast.info    { border-left: 4px solid var(--accent-blue); }
 
         .toast-icon {
             font-size: 20px;
             flex-shrink: 0;
         }
 
-        .toast-content {
-            flex: 1;
-        }
+        .toast-content { flex: 1; min-width: 0; }
 
         .toast-title {
             font-weight: 600;
@@ -823,8 +950,9 @@
         .toast-message {
             font-size: 12px;
             color: var(--text-secondary);
-            line-height: 1.4;
+            line-height: 1.5;
             white-space: pre-line;
+            word-break: break-word;
         }
 
         .toast-close {
@@ -835,83 +963,60 @@
             padding: 0;
             font-size: 16px;
             opacity: 0.6;
-            transition: opacity 0.2s;
+            transition: opacity 0.2s, transform 0.15s;
         }
 
-        .toast-close:hover {
-            opacity: 1;
-        }
+        .toast-close:hover { opacity: 1; transform: scale(1.15); }
 
-        @keyframes slideIn {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-
-        @keyframes slideOut {
-            from {
-                transform: translateX(0);
-                opacity: 1;
-            }
-
-            to {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-        }
-
-        /* Custom Confirm Dialog */
+        /* === Custom confirm dialog === */
         .confirm-overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.7);
+            background: var(--overlay-bg);
             display: none;
             justify-content: center;
             align-items: center;
             z-index: 10001;
-            backdrop-filter: blur(4px);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            animation: overlayIn 0.15s ease-out;
         }
 
         .confirm-box {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 24px;
+            border-radius: var(--radius-lg);
+            padding: 26px;
             max-width: 420px;
             width: 90%;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-            animation: confirmPop 0.2s ease-out;
+            box-shadow: var(--shadow-lg);
+            animation: modalIn 0.2s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .confirm-box::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent-yellow), var(--danger));
+            opacity: 0.85;
         }
 
         @keyframes confirmPop {
-            from {
-                transform: scale(0.9);
-                opacity: 0;
-            }
-
-            to {
-                transform: scale(1);
-                opacity: 1;
-            }
+            from { transform: scale(0.92); opacity: 0; }
+            to   { transform: scale(1); opacity: 1; }
         }
 
         @keyframes spin {
-            from {
-                transform: rotate(0deg);
-            }
-
-            to {
-                transform: rotate(360deg);
-            }
+            from { transform: rotate(0deg); }
+            to   { transform: rotate(360deg); }
         }
 
         .spin {
@@ -925,9 +1030,11 @@
             margin-bottom: 16px;
         }
 
+        .confirm-icon .ico { width: 34px; height: 34px; opacity: 1; }
+
         .confirm-title {
             font-size: 16px;
-            font-weight: 600;
+            font-weight: 700;
             color: var(--text-primary);
             text-align: center;
             margin-bottom: 10px;
@@ -937,7 +1044,7 @@
             font-size: 13px;
             color: var(--text-secondary);
             text-align: center;
-            line-height: 1.5;
+            line-height: 1.55;
             margin-bottom: 20px;
             white-space: pre-line;
         }
@@ -949,14 +1056,15 @@
 
         .confirm-btn {
             flex: 1;
-            padding: 12px 20px;
+            padding: 11px 20px;
             border: none;
-            border-radius: 8px;
+            border-radius: var(--radius-sm);
             font-size: 13px;
-            font-weight: 500;
+            font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: filter 0.15s, transform 0.1s, background 0.15s;
         }
+        .confirm-btn:active { transform: scale(0.97); }
 
         .confirm-btn-cancel {
             background: var(--bg-input);
@@ -965,52 +1073,39 @@
         }
 
         .confirm-btn-cancel:hover {
-            background: var(--border-color);
+            background: var(--hover-overlay);
             color: var(--text-primary);
         }
 
         .confirm-btn-ok {
-            background: var(--accent-blue);
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
             color: white;
+            box-shadow: var(--shadow-accent);
         }
 
-        @keyframes spin {
-            100% {
-                transform: rotate(360deg);
-            }
-        }
-
-        .spin {
-            animation: spin 1s linear infinite;
-            display: inline-block;
-        }
-
-        .confirm-btn-ok:hover {
-            filter: brightness(1.1);
-        }
+        .confirm-btn-ok:hover { filter: brightness(1.12); }
 
         .confirm-btn-danger {
-            background: var(--danger);
+            background: linear-gradient(135deg, var(--danger), #d64550);
             color: white;
+            box-shadow: 0 4px 14px -2px rgba(244, 99, 110, 0.4);
         }
 
-        .confirm-btn-danger:hover {
-            filter: brightness(1.1);
-        }
+        .confirm-btn-danger:hover { filter: brightness(1.1); }
 
-        /* ── View sections ──────────────────────────────────────────────────── */
+        /* ── View sections ── */
         .view-section {
             display: none;
         }
 
-        /* ── Statusbar ──────────────────────────────────────────────────────── */
+        /* ── Statusbar ── */
         .statusbar {
-            height: 24px;
+            height: 26px;
             background: var(--bg-sidebar);
             border-top: 1px solid var(--border-color);
             display: flex;
             align-items: center;
-            padding: 0 12px;
+            padding: 0 14px;
             font-size: 11px;
             color: var(--text-secondary);
             gap: 16px;
@@ -1021,7 +1116,7 @@
         .statusbar-item {
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 5px;
             white-space: nowrap;
         }
 
@@ -1031,14 +1126,17 @@
             border-radius: 50%;
             background: var(--accent-green);
             flex-shrink: 0;
+            box-shadow: 0 0 6px rgba(63, 214, 143, 0.6);
         }
 
         .statusbar-dot.disconnected {
             background: var(--danger);
+            box-shadow: 0 0 6px rgba(244, 99, 110, 0.6);
         }
 
         .statusbar-dot.loading {
             background: var(--accent-yellow);
+            box-shadow: 0 0 6px rgba(245, 185, 62, 0.6);
             animation: pulse 1.2s ease-in-out infinite;
         }
 
@@ -1063,55 +1161,64 @@
         .statusbar-ico { width: 13px; height: 13px; opacity: 0.7; }
         .statusbar-item b { color: var(--text-primary); font-weight: 600; }
         .statusbar-muted { opacity: 0.7; }
-        .statusbar-breakdown, #statusbarBreakdown { gap: 6px; }
+        .statusbar-breakdown, #statusbarBreakdown { gap: 6px; display: flex; align-items: center; }
         .statusbar-dim { opacity: 0.35; }
 
-        /* ── Dashboard Stats ────────────────────────────────────────────────── */
+        /* ── Dashboard ── */
         .dash-welcome {
             display: flex;
             align-items: center;
             gap: 16px;
-            padding: 20px 24px;
-            background: linear-gradient(135deg, var(--bg-card) 0%, rgba(88, 166, 255, 0.08) 100%);
+            padding: 22px 26px;
+            background:
+                radial-gradient(ellipse 60% 120% at 85% -20%, rgba(157, 107, 255, 0.18), transparent 60%),
+                radial-gradient(ellipse 50% 100% at 10% 130%, rgba(90, 139, 255, 0.14), transparent 60%),
+                var(--bg-card);
             border: 1px solid var(--border-color);
-            border-radius: 16px;
+            border-radius: var(--radius-lg);
             margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
         }
 
         .dash-welcome-avatar {
-            width: 52px;
-            height: 52px;
+            width: 54px;
+            height: 54px;
             border-radius: 50%;
-            border: 2px solid var(--accent-blue);
+            border: 2px solid var(--accent);
+            box-shadow: 0 0 0 4px var(--accent-soft), var(--shadow-md);
         }
 
         .dash-welcome-text h2 {
             margin: 0;
-            font-size: 18px;
+            font-size: 19px;
             font-weight: 700;
+            letter-spacing: -0.2px;
         }
 
         .dash-welcome-text p {
             margin: 4px 0 0;
-            font-size: 12px;
+            font-size: 12.5px;
             color: var(--text-secondary);
         }
 
         .dash-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-            gap: 8px;
+            grid-template-columns: repeat(auto-fill, minmax(125px, 1fr));
+            gap: 10px;
         }
 
         .stat-card {
             background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            padding: 10px 12px;
+            border: 1px solid var(--border-soft);
+            border-radius: var(--radius-md);
+            padding: 12px 14px;
             cursor: pointer;
-            transition: border-color 0.15s, background 0.15s;
+            transition: transform 0.16s ease, border-color 0.16s, background 0.16s, box-shadow 0.16s;
             position: relative;
             overflow: hidden;
+            box-shadow: var(--shadow-sm);
         }
 
         .stat-card::before {
@@ -1121,54 +1228,56 @@
             left: 0;
             right: 0;
             height: 3px;
-            background: var(--accent-blue);
+            background: linear-gradient(90deg, var(--accent), var(--accent-2));
             opacity: 0;
             transition: opacity 0.2s;
         }
 
         .stat-card:hover {
-            border-color: var(--accent-blue);
-            background: var(--bg-input);
+            transform: translateY(-2px);
+            border-color: var(--border-color);
+            background: var(--bg-card-hover);
+            box-shadow: var(--shadow-md);
         }
 
-        .stat-card:hover::before {
-            opacity: 1;
-        }
+        .stat-card:hover::before { opacity: 1; }
 
         .stat-card-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 6px;
+            margin-bottom: 8px;
         }
 
         .stat-icon {
             font-size: 14px;
-            width: 26px;
-            height: 26px;
+            width: 28px;
+            height: 28px;
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 6px;
-            background: rgba(82, 139, 255, 0.12);
-            color: var(--accent-blue);
+            border-radius: var(--radius-sm);
+            background: var(--accent-soft);
+            color: var(--accent);
         }
         .stat-icon .ico { width: 15px; height: 15px; opacity: 1; }
 
         .stat-value {
-            font-size: 22px;
+            font-size: 23px;
             font-weight: 700;
-            color: var(--accent-blue);
+            color: var(--text-primary);
             line-height: 1;
+            letter-spacing: -0.5px;
+            font-variant-numeric: tabular-nums;
         }
 
         .stat-label {
             font-size: 10px;
             color: var(--text-secondary);
-            margin-top: 3px;
+            margin-top: 5px;
             text-transform: uppercase;
-            letter-spacing: 0.4px;
-            font-weight: 500;
+            letter-spacing: 0.6px;
+            font-weight: 600;
         }
 
         /* Dashboard panels */
@@ -1181,18 +1290,19 @@
 
         .dash-panel {
             background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 14px;
+            border: 1px solid var(--border-soft);
+            border-radius: var(--radius-lg);
             padding: 18px 20px;
+            box-shadow: var(--shadow-sm);
         }
 
         .dash-panel-title {
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 700;
             text-transform: uppercase;
             color: var(--text-secondary);
             margin-bottom: 14px;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.8px;
         }
 
         /* Language bars */
@@ -1200,7 +1310,7 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            margin-bottom: 8px;
+            margin-bottom: 9px;
         }
 
         .lang-bar-name {
@@ -1222,7 +1332,7 @@
         .lang-bar-fill {
             height: 100%;
             border-radius: 4px;
-            transition: width 0.6s ease;
+            transition: width 0.6s cubic-bezier(0.2, 0.8, 0.3, 1);
         }
 
         .lang-bar-count {
@@ -1231,6 +1341,7 @@
             width: 28px;
             text-align: right;
             flex-shrink: 0;
+            font-variant-numeric: tabular-nums;
         }
 
         /* Recent repos list */
@@ -1239,20 +1350,19 @@
             align-items: center;
             gap: 10px;
             padding: 8px 10px;
-            border-radius: 8px;
+            border-radius: var(--radius-sm);
             transition: background 0.15s;
             cursor: pointer;
         }
 
-        .recent-repo-item:hover {
-            background: var(--bg-input);
-        }
+        .recent-repo-item:hover { background: var(--hover-overlay); }
 
         .recent-repo-dot {
             width: 8px;
             height: 8px;
             border-radius: 50%;
             flex-shrink: 0;
+            box-shadow: 0 0 6px currentColor;
         }
 
         .recent-repo-name {
@@ -1281,33 +1391,46 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 8px;
+            gap: 9px;
             padding: 16px 10px;
             background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
+            border: 1px solid var(--border-soft);
+            border-radius: var(--radius-md);
             cursor: pointer;
-            transition: transform 0.15s, border-color 0.15s, background 0.15s;
+            transition: transform 0.15s ease, border-color 0.15s, background 0.15s, box-shadow 0.15s;
             text-align: center;
+            box-shadow: var(--shadow-sm);
         }
 
         .quick-action-card:hover {
-            transform: translateY(-2px);
-            border-color: var(--accent-blue);
-            background: rgba(88, 166, 255, 0.05);
+            transform: translateY(-3px);
+            border-color: var(--accent);
+            background: var(--bg-card-hover);
+            box-shadow: var(--shadow-md);
         }
 
         .quick-action-icon {
-            font-size: 22px;
+            font-size: 20px;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--radius-md);
+            background: var(--accent-soft);
+            color: var(--accent);
+            transition: transform 0.18s ease;
         }
 
+        .quick-action-card:hover .quick-action-icon { transform: scale(1.1); }
+
         .quick-action-label {
-            font-size: 11px;
+            font-size: 11.5px;
             font-weight: 600;
             color: var(--text-primary);
         }
 
-        /* ── Publish Table (Add Project & Fork Sync) ─────────────────────────── */
+        /* ── Publish Table (Add Project & Fork Sync) ── */
         .pub-table {
             width: 100%;
             border-collapse: collapse;
@@ -1318,9 +1441,10 @@
             background: var(--bg-card);
             padding: 10px 12px;
             text-align: left;
-            font-weight: 600;
-            font-size: 11px;
+            font-weight: 700;
+            font-size: 10.5px;
             text-transform: uppercase;
+            letter-spacing: 0.6px;
             color: var(--text-secondary);
             border-bottom: 1px solid var(--border-color);
             position: sticky;
@@ -1330,55 +1454,57 @@
 
         .pub-table td {
             padding: 10px 12px;
-            border-bottom: 1px solid rgba(255,255,255,0.04);
+            border-bottom: 1px solid var(--row-border);
             vertical-align: middle;
+            color: var(--text-primary);
         }
 
-        .pub-table tr:hover td {
-            background: rgba(255,255,255,0.03);
-        }
+        .pub-table tr:hover td { background: var(--hover-overlay); }
 
         .pub-table input[type="text"],
         .pub-table select {
             background: var(--bg-input);
             border: 1px solid var(--border-color);
             color: var(--text-primary);
-            padding: 5px 8px;
-            border-radius: 5px;
+            padding: 6px 9px;
+            border-radius: 6px;
             font-family: inherit;
             font-size: 12px;
             outline: none;
             width: 100%;
             box-sizing: border-box;
+            transition: border-color 0.15s, box-shadow 0.15s;
         }
 
         .pub-table input[type="text"]:focus,
         .pub-table select:focus {
-            border-color: var(--accent-blue);
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--ring);
         }
 
-        /* ── Publish Log ─────────────────────────────────────────────────────── */
+        /* ── Publish log (terminal) ── */
         .publish-log {
-            background: #0d1117;
+            background: #0b0e15;
             border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 10px 14px;
-            font-family: 'Courier New', monospace;
+            border-radius: var(--radius-sm);
+            padding: 12px 14px;
+            font-family: ui-monospace, 'Cascadia Code', 'Consolas', monospace;
             font-size: 11px;
             max-height: 160px;
             overflow-y: auto;
-            line-height: 1.7;
+            line-height: 1.75;
             user-select: text;
             -webkit-user-select: text;
             cursor: text;
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.35);
         }
 
-        .log-success { color: var(--accent-green); }
-        .log-error   { color: var(--danger); }
-        .log-info    { color: var(--accent-blue); }
-        .log-warn    { color: var(--accent-yellow); }
+        .log-success { color: #4ade80; }
+        .log-error   { color: #f87171; }
+        .log-info    { color: #7aa2ff; }
+        .log-warn    { color: #fbbf24; }
 
-        /* ── History List ─────────────────────────────────────────────────────── */
+        /* ── History list ── */
         .history-list {
             display: flex;
             flex-direction: column;
@@ -1387,47 +1513,80 @@
 
         .history-item {
             background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 10px 14px;
+            border: 1px solid var(--border-soft);
+            border-radius: var(--radius-md);
+            padding: 11px 14px;
             display: flex;
             align-items: center;
             gap: 12px;
             font-size: 12px;
+            transition: border-color 0.15s, background 0.15s, transform 0.12s;
+        }
+
+        .history-item:hover {
+            border-color: var(--border-color);
+            background: var(--bg-card-hover);
+            transform: translateX(2px);
         }
 
         .history-badge {
             font-size: 10px;
-            font-weight: 600;
-            padding: 2px 8px;
+            font-weight: 700;
+            padding: 2px 9px;
             border-radius: 20px;
             text-transform: uppercase;
             white-space: nowrap;
+            letter-spacing: 0.4px;
         }
 
-        .badge-success { background: rgba(63,185,80,0.15); color: var(--accent-green); }
-        .badge-error   { background: rgba(248,81,73,0.15); color: var(--danger); }
-        .badge-synced  { background: rgba(139,92,246,0.15); color: #a78bfa; }
-        .badge-conflict{ background: rgba(210,153,34,0.15); color: var(--accent-yellow); }
+        .badge-success  { background: rgba(63, 185, 80, 0.15); color: var(--accent-green); }
+        .badge-error    { background: rgba(248, 81, 73, 0.15); color: var(--danger); }
+        .badge-synced   { background: rgba(139, 92, 246, 0.15); color: var(--accent-purple); }
+        .badge-conflict { background: rgba(210, 153, 34, 0.15); color: var(--accent-yellow); }
 
-        /* ── Status chips ─────────────────────────────────────────────────────── */
+        /* ── Status chips ── */
         .status-chip {
             font-size: 10px;
-            font-weight: 600;
-            padding: 2px 8px;
+            font-weight: 700;
+            padding: 2.5px 9px;
             border-radius: 20px;
             text-transform: uppercase;
+            letter-spacing: 0.3px;
+            border: 1px solid transparent;
         }
 
-        .chip-pending  { background: rgba(170,170,170,0.15); color: var(--text-secondary); }
-        .chip-running  { background: rgba(88,166,255,0.15);  color: var(--accent-blue); }
-        .chip-success  { background: rgba(63,185,80,0.15);   color: var(--accent-green); }
-        .chip-error    { background: rgba(248,81,73,0.15);   color: var(--danger); }
-        .chip-synced   { background: rgba(63,185,80,0.15);   color: var(--accent-green); }
-        .chip-conflict { background: rgba(210,153,34,0.15);  color: var(--accent-yellow); }
-        .chip-not-eligible { background: rgba(170,170,170,0.15); color: var(--text-secondary); }
-        .chip-permission-error { background: rgba(248,81,73,0.15); color: var(--danger); }
-    </style>
+        .chip-pending          { background: var(--hover-overlay); color: var(--text-secondary); border-color: var(--border-soft); }
+        .chip-running          { background: var(--accent-soft); color: var(--accent-blue); }
+        .chip-success          { background: rgba(63, 185, 80, 0.15); color: var(--accent-green); }
+        .chip-error            { background: rgba(248, 81, 73, 0.15); color: var(--danger); }
+        .chip-synced           { background: rgba(63, 185, 80, 0.15); color: var(--accent-green); }
+        .chip-conflict         { background: rgba(210, 153, 34, 0.15); color: var(--accent-yellow); }
+        .chip-not-eligible     { background: var(--hover-overlay); color: var(--text-secondary); border-color: var(--border-soft); }
+        .chip-permission-error { background: rgba(248, 81, 73, 0.15); color: var(--danger); }
+
+        /* === Light-theme specific polish === */
+        [data-theme="light"] .win-titlebar { background: #ffffff; }
+        [data-theme="light"] .publish-log { background: #f6f8fc; box-shadow: inset 0 1px 4px rgba(15, 23, 42, 0.06); }
+        [data-theme="light"] .publish-log .log-success { color: #15803d; }
+        [data-theme="light"] .publish-log .log-error { color: #b91c1c; }
+        [data-theme="light"] .publish-log .log-info { color: #1d4ed8; }
+        [data-theme="light"] .publish-log .log-warn { color: #a16207; }
+        [data-theme="light"] .dash-welcome {
+            background:
+                radial-gradient(ellipse 60% 120% at 85% -20%, rgba(139, 92, 246, 0.1), transparent 60%),
+                radial-gradient(ellipse 50% 100% at 10% 130%, rgba(59, 116, 232, 0.08), transparent 60%),
+                var(--bg-card);
+        }
+
+        /* === Motion preferences === */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+</style>
 </head>
 
 <body>
@@ -1777,8 +1936,16 @@
                             </path>
                         </svg>
                     </div>
+                    <div
+                        style="cursor: pointer; display: flex; align-items: center; transition: opacity 0.2s;"
+                        onclick="window.api.openExternal('https://x.com/palamut62')"
+                        title="Umut Çelik (palamut62) on X">
+                        <svg class="ico" viewBox="0 0 24 24" style="width: 15px; height: 15px; fill: var(--text-primary);">
+                            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                        </svg>
+                    </div>
                 </div>
-                <div id="sidebarVersion" style="opacity: 0.5; font-size: 10px;">GitHub Repo Organizer v2.6.1</div>
+                <div id="sidebarVersion" style="opacity: 0.5; font-size: 10px;">GitHub Repo Organizer v2.7.0</div>
             </div>
         </div>
     </div>
@@ -1788,6 +1955,8 @@
         <div class="header">
             <div class="page-title" id="pageTitle">Dashboard</div>
             <div class="search-bar" id="repoSearchBar" style="display:none;">
+                <input type="text" id="repoSearchInput" class="input-dark" placeholder="Search repos…  (Ctrl+F)"
+                    oninput="onRepoSearchInput(this.value)" style="width: 210px; margin-right: 12px;">
                 <div
                     style="display: flex; background: var(--bg-input); border-radius: 6px; border: 1px solid var(--border-color); margin-right: 10px;">
                     <button class="view-btn active" id="btnViewList" onclick="switchView('list')"
@@ -2820,7 +2989,11 @@
 
     <script>
         // ========== TOAST & CONFIRM SYSTEM ==========
-        function showToast(message, type = 'info', title = null, duration = 4000) {
+        function showToast(message, type = 'info', opts = {}) {
+            // Legacy support: a plain string 3rd arg was used as the title
+            if (typeof opts === 'string') opts = { title: opts };
+            const { title = null, raw = false, duration = 4000 } = opts;
+
             const container = document.getElementById('toastContainer');
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
@@ -2839,11 +3012,15 @@
                 info: 'Info'
             };
 
+            // Escape by default so API/AI-supplied text can never inject markup;
+            // callers that pass trusted inline SVG use { raw: true }.
+            const safeMessage = raw ? message : escHtml(message);
+
             toast.innerHTML = `
                 <div class="toast-icon">${icons[type]}</div>
                 <div class="toast-content">
-                    <div class="toast-title">${title || titles[type]}</div>
-                    <div class="toast-message">${message}</div>
+                    <div class="toast-title">${title ? escHtml(title) : titles[type]}</div>
+                    <div class="toast-message">${safeMessage}</div>
                 </div>
                 <button class="toast-close" onclick="this.parentElement.remove()"><svg class="ico"><use href="#i-cross"/></svg></button>
             `;
@@ -3062,6 +3239,52 @@
             }
         });
 
+        // ── Global keyboard shortcuts ────────────────────────────────────────
+        document.addEventListener('keydown', (e) => {
+            // Esc → close topmost modal / confirm dialog / clear search
+            if (e.key === 'Escape') {
+                const openModals = Array.from(document.querySelectorAll('.modal-overlay'))
+                    .filter(m => getComputedStyle(m).display === 'flex');
+                if (openModals.length > 0) {
+                    openModals[openModals.length - 1].style.display = 'none';
+                    e.preventDefault();
+                    return;
+                }
+                const confirmEl = document.getElementById('confirmDialog');
+                if (confirmEl && getComputedStyle(confirmEl).display === 'flex') {
+                    confirmEl.style.display = 'none';
+                    if (confirmResolve) { confirmResolve(false); confirmResolve = null; }
+                    e.preventDefault();
+                    return;
+                }
+                const searchInput = document.getElementById('repoSearchInput');
+                if (searchInput && searchInput.value) {
+                    searchInput.value = '';
+                    onRepoSearchInput('');
+                }
+            }
+
+            // Ctrl/Cmd + F → focus repo search (switching to Repos view if needed)
+            if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'f') {
+                const active = document.activeElement;
+                const typingSomewhere = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA');
+                if (!typingSomewhere) {
+                    e.preventDefault();
+                    const input = document.getElementById('repoSearchInput');
+                    if (currentMainView !== 'repos') showView('repos');
+                    setTimeout(() => { if (input) input.focus(); }, 50);
+                }
+            }
+        });
+
+        // ── Click on a modal's backdrop closes it ────────────────────────────
+        document.addEventListener('mousedown', (e) => {
+            if (e.target.classList && e.target.classList.contains('modal-overlay')) {
+                // Don't close while dragging text out of inputs inside the overlay
+                e.target.style.display = 'none';
+            }
+        });
+
         // --- View Logic ---
         function switchView(mode) {
             currentView = mode;
@@ -3071,14 +3294,14 @@
 
             if (mode === 'list') {
                 grid.classList.add('list-view');
-                btnList.style.background = 'rgba(255,255,255,0.1)';
+                btnList.style.background = 'var(--active-overlay)';
                 btnGrid.style.background = 'transparent';
                 btnList.innerHTML = '<svg class="ico"><use href="#i-list"/></svg>';
                 btnGrid.innerHTML = '<svg class="ico"><use href="#i-box"/></svg>';
             } else {
                 grid.classList.remove('list-view');
                 btnList.style.background = 'transparent';
-                btnGrid.style.background = 'rgba(255,255,255,0.1)';
+                btnGrid.style.background = 'var(--active-overlay)';
                 btnList.innerHTML = '<svg class="ico"><use href="#i-list"/></svg>';
                 btnGrid.innerHTML = '<svg class="ico"><use href="#i-box"/></svg>';
             }
@@ -3105,16 +3328,23 @@
             document.getElementById('pageTitle').innerText = type === 'all' ? 'Repositories' : (type === 'source' ? 'Source Repositories' : 'Forked Repositories');
 
             // Filter Data
+            currentAdvancedFilter = null;
             if (type === 'all') filteredRepos = [...allRepos];
             else if (type === 'source') filteredRepos = allRepos.filter(r => !r.fork);
             else if (type === 'fork') filteredRepos = allRepos.filter(r => r.fork);
+            applySearchQuery();
 
             sortRepos();
             renderPage();
         }
 
-        function applyAdvancedFilter(type) {
-            if (allRepos.length === 0) { loadRepos(); return; }
+        async function applyAdvancedFilter(type) {
+            if (allRepos.length === 0) {
+                // Repos not loaded yet — fetch them first, THEN apply the clicked filter
+                await loadRepos();
+                if (allRepos.length === 0) return;
+            }
+            currentAdvancedFilter = type;
 
             const titleMap = {
                 'public':          'Public Repos',
@@ -3161,9 +3391,32 @@
 
             currentPage = 1;
             document.getElementById('pageTitle').innerText = titleMap[type] || type;
+            applySearchQuery();
             document.getElementById('status').innerText = `Showing ${filteredRepos.length} repos`;
             sortRepos();
             renderPage();
+        }
+
+        // ── Repo search (header box, Ctrl+F) ─────────────────────────────────
+        let searchQuery = '';
+        let currentAdvancedFilter = null;
+
+        function applySearchQuery() {
+            const q = searchQuery.trim().toLowerCase();
+            if (!q) return;
+            filteredRepos = filteredRepos.filter(r =>
+                (r.name || '').toLowerCase().includes(q) ||
+                (r.full_name || '').toLowerCase().includes(q) ||
+                (r.description || '').toLowerCase().includes(q) ||
+                (r.language || '').toLowerCase().includes(q)
+            );
+        }
+
+        function onRepoSearchInput(value) {
+            searchQuery = value;
+            // Re-run the active base filter first so search composes with it
+            if (currentAdvancedFilter) applyAdvancedFilter(currentAdvancedFilter);
+            else applyFilter(currentFilter);
         }
 
         function updateFilterCounts() {
@@ -3618,12 +3871,25 @@
             if (!confirmed) return;
 
             document.getElementById('status').innerText = 'Deleting...';
-            // Logic similar to previous, simplified for this rewrite view
             const token = await window.api.getToken();
-            await window.api.deleteRepos({ token, repos: selected });
+            let results;
+            try {
+                results = await window.api.deleteRepos({ token, repos: selected });
+            } catch (e) {
+                document.getElementById('status').innerText = '';
+                return showToast('Delete failed: ' + e.message, 'error');
+            }
+
+            // Count real per-repo outcomes from the structured results
+            const failed = (results || []).filter(r => !r.ok);
             document.getElementById('status').innerText = 'Deleted.';
-            showToast('Repositories deleted successfully!', 'success');
-            loadRepos(); // Refresh
+            if (failed.length === 0) {
+                showToast(`${selected.length} repository(ies) deleted successfully!`, 'success');
+            } else {
+                const names = failed.map(r => `${r.name}: ${r.error || 'unknown error'}`).join('\n');
+                showToast(`${selected.length - failed.length} deleted, ${failed.length} failed:\n${names}`, 'error', { raw: true, duration: 8000 });
+            }
+            loadRepos(); // Refresh even on partial failure — deleted ones are gone
         }
 
         async function deleteSingleRepo(fullName, repoName, btn) {
@@ -3637,18 +3903,24 @@
 
             if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
             const token = await window.api.getToken();
-            const res = await window.api.deleteRepos({ token, repos: [fullName] });
+            let res;
+            try {
+                res = await window.api.deleteRepos({ token, repos: [fullName] });
+            } catch (e) {
+                showToast(`Failed to delete "${repoName}": ${e.message}`, 'error');
+                if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+                return;
+            }
 
-            // deleteRepos may return an array of results or a plain success flag
-            const ok = Array.isArray(res)
-                ? res.every(r => r.status === 'success' || r.success)
-                : (res && res.success !== false);
+            // Main returns [{ name, status:'deleted'|'error', ok }] per repo
+            const entry = Array.isArray(res) ? res[0] : null;
+            const ok = entry ? !!entry.ok : !!(res && res.success !== false);
 
             if (ok) {
                 showToast(`"${repoName}" deleted.`, 'success');
                 loadRepos();
             } else {
-                showToast(`Failed to delete "${repoName}".`, 'error');
+                showToast(`Failed to delete "${repoName}". ${entry && entry.error ? escHtml(entry.error) : ''}`, 'error', { raw: true });
                 if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
             }
         }
@@ -3720,10 +3992,21 @@
                 newName: document.getElementById(`prop-${i}`).value
             }));
 
-            const results = await window.api.executeRenames({ token, renames });
+            let results;
+            try {
+                results = await window.api.executeRenames({ token, renames });
+            } catch (e) {
+                showToast('Rename failed: ' + e.message, 'error');
+                btn.innerText = 'Confirm & Rename';
+                return;
+            }
 
-            // Show result status in table? Or just alert done.
-            showToast('Renames processed successfully!', 'success');
+            const failed = (results || []).filter(r => !r.status || r.status !== 'Success');
+            if (failed.length === 0) {
+                showToast(`${results.length} repository(ies) renamed successfully!`, 'success');
+            } else {
+                showToast(`${results.length - failed.length} renamed, ${failed.length} failed:\n${failed.map(f => `${f.name}: ${f.status}`).join('\n')}`, 'error', { raw: true, duration: 8000 });
+            }
             document.getElementById('renameModal').style.display = 'none';
             btn.innerText = 'Confirm & Rename';
             loadRepos();
@@ -3971,7 +4254,7 @@ npm start</pre>
             const result = await window.api.getDetailedRepoInfo({ token, fullName });
 
             if (!result.success) {
-                document.getElementById('repoDetailContent').innerHTML = `<p style="color: var(--danger);">Error: ${result.error}</p>`;
+                document.getElementById('repoDetailContent').innerHTML = `<p style="color: var(--danger);">Error: ${escHtml(result.error)}</p>`;
                 return;
             }
 
@@ -4000,7 +4283,7 @@ npm start</pre>
             let topicsHtml = '';
             if (repo.topics && repo.topics.length > 0) {
                 const topicBadges = repo.topics.slice(0, 6).map(t =>
-                    `<span style="background: rgba(88,166,255,0.12); color: var(--accent-blue); padding: 3px 8px; border-radius: 10px; font-size: 10px;">${t}</span>`
+                    `<span style="background: rgba(88,166,255,0.12); color: var(--accent-blue); padding: 3px 8px; border-radius: 10px; font-size: 10px;">${escHtml(t)}</span>`
                 ).join(' ');
                 topicsHtml = `<div style="display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 12px;">${topicBadges}</div>`;
             }
@@ -4081,9 +4364,9 @@ npm start</pre>
                 <div style="background: var(--bg-body); border-radius: 6px; padding: 12px; margin-bottom: 12px;">
                     <div style="font-size: 11px; font-weight: 600; color: var(--accent-green); margin-bottom: 8px;">Recent Commits</div>
                     ${repo.recentCommits.slice(0, 3).map(c => `
-                        <div style="display: flex; gap: 8px; padding: 4px 0; font-size: 11px; border-bottom: 1px solid rgba(255,255,255,0.05);">
-                            <code style="color: var(--accent-blue); flex-shrink: 0;">${c.sha}</code>
-                            <span style="flex: 1; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${c.message}</span>
+                        <div style="display: flex; gap: 8px; padding: 4px 0; font-size: 11px; border-bottom: 1px solid var(--row-border);">
+                            <code style="color: var(--accent-blue); flex-shrink: 0;">${escHtml(c.sha)}</code>
+                            <span style="flex: 1; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escHtml(c.message)}">${escHtml(c.message)}</span>
                             <span style="color: var(--text-secondary); opacity: 0.7; flex-shrink: 0;">${new Date(c.date).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short' })}</span>
                         </div>
                     `).join('')}
@@ -4106,11 +4389,17 @@ npm start</pre>
 
         async function syncForkRepo(fullName) {
             const btn = document.getElementById('btnSyncFork');
+            const SYNC_LABEL = 'Sync';
             btn.innerHTML = '<svg class="ico"><use href="#i-hourglass"/></svg> Syncing...';
             btn.disabled = true;
 
-            const token = await window.api.getToken();
-            const result = await window.api.syncFork({ token, fullName });
+            let result;
+            try {
+                const token = await window.api.getToken();
+                result = await window.api.syncFork({ token, fullName });
+            } catch (e) {
+                result = { success: false, error: e.message };
+            }
 
             if (result.success) {
                 btn.innerHTML = '<svg class="ico" style="width:14px;height:14px;vertical-align:middle;color:var(--accent-green);"><use href="#i-check"/></svg> Synced!';
@@ -4119,13 +4408,13 @@ npm start</pre>
                 // Refresh the detail modal
                 setTimeout(() => openRepoDetail(fullName), 1000);
             } else {
-                btn.innerText = '<svg class="ico" style="width:11px;height:11px;vertical-align:middle;color:var(--danger);"><use href="#i-cross"/></svg> Failed';
+                btn.innerHTML = '<svg class="ico" style="width:11px;height:11px;vertical-align:middle;color:#fff;"><use href="#i-cross"/></svg> Failed';
                 btn.style.background = 'var(--danger)';
                 showToast(`Sync failed: ${result.error}`, 'error');
             }
 
             setTimeout(() => {
-                btn.innerText = 'Sync Fork with Upstream';
+                btn.innerHTML = SYNC_LABEL;
                 btn.style.background = '';
                 btn.disabled = false;
             }, 2000);
@@ -4138,7 +4427,7 @@ npm start</pre>
             const selected = getSelected();
             if (selected.length === 0) return showToast('Select repos first.', 'warning');
 
-            const list = selected.map(r => `<div style="padding: 4px 0; font-size: 12px;">• ${r}</div>`).join('');
+            const list = selected.map(r => `<div style="padding: 4px 0; font-size: 12px;">• ${escHtml(r)}</div>`).join('');
             document.getElementById('visibilityRepoList').innerHTML = list;
             document.getElementById('visibilityModal').style.display = 'flex';
         }
@@ -4148,7 +4437,7 @@ npm start</pre>
             if (selected.length === 0) return;
 
             const confirmMsg = visibility === 'private'
-                ? `Make ${selected.length} repo(s) PRIVATE? This requires a paid GitHub plan.`
+                ? `Make ${selected.length} repo(s) PRIVATE? Only you and invited collaborators will see them.`
                 : `Make ${selected.length} repo(s) PUBLIC? Anyone will be able to see them.`;
 
             const confirmed = await showConfirm(confirmMsg, { type: 'warning', title: 'Change Visibility', okText: 'Confirm' });
@@ -4157,16 +4446,25 @@ npm start</pre>
             const btn = visibility === 'public' ? document.getElementById('btnMakePublic') : document.getElementById('btnMakePrivate');
             btn.innerText = 'Processing...';
 
-            const token = await window.api.getToken();
-            const results = await window.api.changeVisibility({ token, repos: selected, visibility });
+            let results;
+            try {
+                const token = await window.api.getToken();
+                results = await window.api.changeVisibility({ token, repos: selected, visibility });
+            } catch (e) {
+                showToast('Visibility change failed: ' + e.message, 'error');
+                btn.innerText = visibility === 'public' ? 'Make Public' : 'Make Private';
+                return;
+            }
 
             const success = results.filter(r => r.status === 'success').length;
             const failed = results.filter(r => r.status === 'error').length;
 
-            btn.innerText = visibility === 'public' ? '<svg class="ico" style="width:12px;height:12px;vertical-align:middle;"><use href="#i-globe"/></svg> Make Public' : '<svg class="ico" style="width:12px;height:12px;vertical-align:middle;"><use href="#i-lock"/></svg> Make Private';
+            btn.innerHTML = visibility === 'public'
+                ? '<svg class="ico" style="width:12px;height:12px;vertical-align:middle;"><use href="#i-globe"/></svg> Make Public'
+                : '<svg class="ico" style="width:12px;height:12px;vertical-align:middle;"><use href="#i-lock"/></svg> Make Private';
             document.getElementById('visibilityModal').style.display = 'none';
 
-            showToast(`<svg class="ico" style="width:11px;height:11px;vertical-align:middle;color:var(--accent-green);"><use href="#i-check"/></svg> Success: ${success}\n<svg class="ico" style="width:11px;height:11px;vertical-align:middle;color:var(--danger);"><use href="#i-cross"/></svg> Failed: ${failed}`, success > 0 ? 'success' : 'error', 'Visibility Changed');
+            showToast(`<svg class="ico" style="width:11px;height:11px;vertical-align:middle;color:var(--accent-green);"><use href="#i-check"/></svg> Success: ${success}\n<svg class="ico" style="width:11px;height:11px;vertical-align:middle;color:var(--danger);"><use href="#i-cross"/></svg> Failed: ${failed}`, success > 0 ? 'success' : 'error', { title: 'Visibility Changed', raw: true });
             loadRepos();
         }
 
@@ -4175,7 +4473,7 @@ npm start</pre>
             const selected = getSelected();
             if (selected.length === 0) return showToast('Select repos first.', 'warning');
 
-            const list = selected.map(r => `<div style="padding: 4px 0; font-size: 12px;">• ${r}</div>`).join('');
+            const list = selected.map(r => `<div style="padding: 4px 0; font-size: 12px;">• ${escHtml(r)}</div>`).join('');
             document.getElementById('topicsRepoList').innerHTML = list;
             document.getElementById('topicsInput').value = '';
             document.getElementById('topicsModal').style.display = 'flex';
@@ -4227,7 +4525,7 @@ npm start</pre>
             btn.innerText = action === 'add' ? 'Add Topics' : 'Remove Topics';
             document.getElementById('topicsModal').style.display = 'none';
 
-            showToast(`<svg class="ico" style="width:11px;height:11px;vertical-align:middle;color:var(--accent-green);"><use href="#i-check"/></svg> Success: ${success}\n<svg class="ico" style="width:11px;height:11px;vertical-align:middle;color:var(--danger);"><use href="#i-cross"/></svg> Failed: ${failed}`, success > 0 ? 'success' : 'error', `Topics ${action === 'add' ? 'Added' : 'Removed'}`);
+            showToast(`<svg class="ico" style="width:11px;height:11px;vertical-align:middle;color:var(--accent-green);"><use href="#i-check"/></svg> Success: ${success}\n<svg class="ico" style="width:11px;height:11px;vertical-align:middle;color:var(--danger);"><use href="#i-cross"/></svg> Failed: ${failed}`, success > 0 ? 'success' : 'error', { title: `Topics ${action === 'add' ? 'Added' : 'Removed'}`, raw: true });
             loadRepos();
         }
 
@@ -4276,7 +4574,7 @@ npm start</pre>
             btn.innerText = 'Add License to Repos';
             document.getElementById('licenseModal').style.display = 'none';
 
-            showToast(`<svg class="ico" style="width:11px;height:11px;vertical-align:middle;color:var(--accent-green);"><use href="#i-check"/></svg> Success: ${success}\n<svg class="ico" style="width:11px;height:11px;vertical-align:middle;color:var(--danger);"><use href="#i-cross"/></svg> Failed: ${failed}`, success > 0 ? 'success' : 'error', 'Licenses Added');
+            showToast(`<svg class="ico" style="width:11px;height:11px;vertical-align:middle;color:var(--accent-green);"><use href="#i-check"/></svg> Success: ${success}\n<svg class="ico" style="width:11px;height:11px;vertical-align:middle;color:var(--danger);"><use href="#i-cross"/></svg> Failed: ${failed}`, success > 0 ? 'success' : 'error', { title: 'Licenses Added', raw: true });
             loadRepos();
         }
 
@@ -4776,6 +5074,9 @@ npm start</pre>
         // Simple markdown to HTML renderer
         function renderMarkdown(md) {
             if (!md) return '';
+            // Escape raw HTML FIRST — AI output can quote analyzed third-party
+            // repo source, which must never execute as markup.
+            md = escHtml(md);
             return md
                 // Headers
                 .replace(/^### (.*$)/gim, '<h5 style="color: var(--accent-blue); margin: 20px 0 10px 0;">$1</h5>')
@@ -5453,36 +5754,50 @@ npm start</pre>
             const token = await window.api.getToken();
             if (!token) return;
 
-            const promises = forkRepos.map(async (r, i) => {
+            const updateCell = (i, res) => {
                 const cell = document.getElementById(`forkUpstream${i}`);
+                if (!cell) return;
+                if (!res || !res.success) {
+                    cell.innerHTML = '<span style="color:var(--text-secondary);">—</span>';
+                    return;
+                }
+
+                forkRepos[i]._behind = res.behind;
+                forkRepos[i]._ahead = res.ahead;
+                forkRepos[i]._upstreamStatus = res.status;
+
+                if (res.status === 'identical') {
+                    cell.innerHTML = '<span class="status-chip chip-synced" style="font-size:10px;"><svg class="ico" style="width:12px;height:12px;vertical-align:middle;color:var(--accent-green);"><use href="#i-check"/></svg> Up to date</span>';
+                } else if (res.behind > 0 && res.ahead === 0) {
+                    cell.innerHTML = `<span class="status-chip" style="font-size:10px; background:var(--accent-yellow); color:#000;">⬇ ${res.behind} commit${res.behind > 1 ? 's' : ''} behind</span>`;
+                } else if (res.ahead > 0 && res.behind === 0) {
+                    cell.innerHTML = `<span class="status-chip" style="font-size:10px; background:var(--accent-blue); color:#fff;"><svg class="ico" style="width:10px;height:10px;vertical-align:middle;"><use href="#i-rocket"/></svg> ${res.ahead} commit${res.ahead > 1 ? 's' : ''} ahead</span>`;
+                } else if (res.status === 'diverged') {
+                    cell.innerHTML = `<span class="status-chip" style="font-size:10px; background:var(--accent-purple); color:#fff;"><svg class="ico" style="width:10px;height:10px;vertical-align:middle;"><use href="#i-rocket"/></svg>${res.ahead} ⬇${res.behind} diverged</span>`;
+                } else {
+                    cell.innerHTML = '<span style="color:var(--text-secondary);">—</span>';
+                }
+            };
+
+            // Bounded concurrency: GitHub's secondary rate limiter rejects
+            // bursts of unauthenticated-pattern parallel calls.
+            const CONCURRENCY = 4;
+            const queue = forkRepos.map((r, i) => async () => {
                 try {
                     const res = await window.api.checkForkStatus({ token, fullName: r.full_name });
-                    if (!res.success) {
-                        cell.innerHTML = '<span style="color:var(--text-secondary);">—</span>';
-                        return;
-                    }
-
-                    forkRepos[i]._behind = res.behind;
-                    forkRepos[i]._ahead = res.ahead;
-                    forkRepos[i]._upstreamStatus = res.status;
-
-                    if (res.status === 'identical') {
-                        cell.innerHTML = '<span class="status-chip chip-synced" style="font-size:10px;"><svg class="ico" style="width:12px;height:12px;vertical-align:middle;color:var(--accent-green);"><use href="#i-check"/></svg> Up to date</span>';
-                    } else if (res.behind > 0 && res.ahead === 0) {
-                        cell.innerHTML = `<span class="status-chip" style="font-size:10px; background:var(--accent-yellow); color:#000;">⬇ ${res.behind} commit${res.behind > 1 ? 's' : ''} behind</span>`;
-                    } else if (res.ahead > 0 && res.behind === 0) {
-                        cell.innerHTML = `<span class="status-chip" style="font-size:10px; background:var(--accent-blue); color:#fff;"><svg class="ico" style="width:10px;height:10px;vertical-align:middle;"><use href="#i-rocket"/></svg> ${res.ahead} commit${res.ahead > 1 ? 's' : ''} ahead</span>`;
-                    } else if (res.status === 'diverged') {
-                        cell.innerHTML = `<span class="status-chip" style="font-size:10px; background:var(--accent-purple); color:#fff;"><svg class="ico" style="width:10px;height:10px;vertical-align:middle;"><use href="#i-rocket"/></svg>${res.ahead} ⬇${res.behind} diverged</span>`;
-                    } else {
-                        cell.innerHTML = '<span style="color:var(--text-secondary);">—</span>';
-                    }
+                    updateCell(i, res);
                 } catch (e) {
-                    cell.innerHTML = '<span style="color:var(--text-secondary);">—</span>';
+                    updateCell(i, null);
                 }
             });
 
-            await Promise.allSettled(promises);
+            const workers = Array.from({ length: Math.min(CONCURRENCY, queue.length) }, async () => {
+                while (queue.length > 0) {
+                    const task = queue.shift();
+                    if (task) await task();
+                }
+            });
+            await Promise.allSettled(workers);
 
             // Update fork badge with count of forks that need sync
             const needsSync = forkRepos.filter(r => r._behind > 0).length;
