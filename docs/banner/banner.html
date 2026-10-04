@@ -1,0 +1,79 @@
+<!doctype html>
+<!-- README / social preview banner (1280x640). Regenerate with: npm run banner -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&display=swap">
+<style>
+  :root {
+    --paper: #0E1222; --surface: #161B30; --line: #262C45; --ink: #E8EAF4; --muted: #9097B0;
+    --indigo: #8B8CF8; --add: #3FB950; --add-bg: #12301D; --del: #F85149; --del-bg: #3A1820;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1280px; height: 640px; overflow: hidden; }
+  body {
+    background:
+      radial-gradient(900px 520px at 88% 30%, rgba(91, 91, 214, 0.22), transparent 60%),
+      var(--paper);
+    color: var(--ink); font-family: "IBM Plex Sans", sans-serif;
+    display: grid; grid-template-columns: 1fr 470px; align-items: center; gap: 56px;
+    padding: 0 76px;
+  }
+  .brand { display: flex; align-items: center; gap: 18px; }
+  .brand img { width: 76px; height: 76px; }
+  .brand span { font-family: "Bricolage Grotesque", sans-serif; font-weight: 700; font-size: 27px; letter-spacing: -0.01em; }
+  h1 {
+    margin-top: 38px; font-family: "Bricolage Grotesque", sans-serif; font-weight: 800;
+    font-size: 66px; line-height: 1.0; letter-spacing: -0.035em; white-space: nowrap;
+  }
+  p { margin-top: 26px; max-width: 520px; font-size: 21px; line-height: 1.5; color: var(--muted); }
+  .meta { margin-top: 30px; font-size: 16px; color: var(--muted); }
+  .meta b { color: var(--ink); font-weight: 500; }
+
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; overflow: hidden;
+          box-shadow: 0 40px 80px -40px rgba(0, 0, 0, 0.7); }
+  .head { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--line); }
+  .avatar { width: 30px; height: 30px; border-radius: 50%; background: #2A2F5E; color: #C9CAFB;
+            display: grid; place-items: center; font: 700 12px "Bricolage Grotesque", sans-serif; }
+  .head .who { font: 500 15px "IBM Plex Mono", monospace; }
+  .head .count { font-size: 13px; color: var(--muted); }
+  .rows { padding: 6px 0; }
+  .row { display: flex; align-items: center; gap: 14px; padding: 11px 20px; font: 15px "IBM Plex Mono", monospace; }
+  .row .sign { width: 10px; color: transparent; }
+  .row .name { flex: 1; }
+  .row .info { font: 13px "IBM Plex Sans", sans-serif; color: var(--muted); }
+  .row.del { background: var(--del-bg); color: var(--del); }
+  .row.del .name { text-decoration: line-through; }
+  .row.del .sign, .row.del .info { color: var(--del); }
+  .row.add { background: var(--add-bg); color: var(--add); }
+  .row.add .sign, .row.add .info { color: var(--add); }
+  .foot { padding: 14px 20px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+  .foot .d { color: var(--del); font-weight: 500; } .foot .a { color: var(--add); font-weight: 500; }
+</style>
+</head>
+<body>
+  <main>
+    <div class="brand"><img src="../../assets/icon-original.png" alt=""><span>GitHub Repo Organizer</span></div>
+    <h1>Your GitHub account,<br>cleaned up.</h1>
+    <p>Find stale repositories, publish local folders, keep forks in sync and fix commit messages, without losing the work you want to keep.</p>
+    <div class="meta"><b>Free and open source</b> desktop app for Windows</div>
+  </main>
+
+  <section class="card" aria-label="Example cleanup">
+    <div class="head">
+      <div class="avatar">od</div>
+      <div><div class="who">octo-dev</div><div class="count">64 repositories</div></div>
+    </div>
+    <div class="rows">
+      <div class="row"><span class="sign">&nbsp;</span><span class="name">weather-cli</span><span class="info">pushed 2 hours ago</span></div>
+      <div class="row del"><span class="sign">-</span><span class="name">old-jquery-plugin</span><span class="info">no push in 2 years</span></div>
+      <div class="row add"><span class="sign">+</span><span class="name">react</span><span class="info">fork, up to date</span></div>
+      <div class="row del"><span class="sign">-</span><span class="name">untitled-project-3</span><span class="info">renamed</span></div>
+      <div class="row add"><span class="sign">+</span><span class="name">invoice-api</span><span class="info">AI suggestion</span></div>
+      <div class="row del"><span class="sign">-</span><span class="name">todo-app-final-v2</span><span class="info">no push in 2 years</span></div>
+      <div class="row"><span class="sign">&nbsp;</span><span class="name">portfolio-site</span><span class="info">pushed yesterday</span></div>
+    </div>
+    <div class="foot"><span class="d">2 deleted</span>, <span class="a">1 renamed</span>, <span class="a">1 fork synced</span></div>
+  </section>
+</body>
+</html>

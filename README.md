@@ -1,9 +1,9 @@
 <p align="center">
-  <img src="assets/banner.png" alt="GitHub Repo Organizer — Clean. Organize. Optimize." width="100%" />
+  <img src="assets/banner.png" alt="GitHub Repo Organizer: your GitHub account, cleaned up." width="100%" />
 </p>
 
 <h1 align="center">GitHub Repo Organizer</h1>
-<p align="center">AI-powered desktop tool to analyze, organize, and clean your GitHub repositories.</p>
+<p align="center">A free desktop app to find stale repositories, publish local folders, keep forks in sync and fix commit messages, without losing your work.</p>
 
 <p align="center">
   <a href="https://github-repo-cleaner-aiwebpage.vercel.app">Website</a> ·
@@ -26,6 +26,7 @@
 
 - [Overview](#overview)
 - [Features](#features)
+- [Safety](#safety)
 - [Tech Stack](#tech-stack)
 - [Project Structure](#project-structure)
 - [Getting Started](#getting-started)
@@ -82,7 +83,7 @@ Publish local folders to GitHub directly from the app:
 ### Repository Analysis
 - **Stale Repos** — not updated in 6+ months
 - **Large Repos** — over 50MB
-- **Unchanged Forks** — forks without modifications
+- **Unchanged Forks** — forks with no commits of their own, verified against upstream (forks that can't be checked are left out)
 - **No-Stars Repos** — repositories without stars
 - **Clone Counts** — 14-day clone counts on owned repos
 
@@ -94,13 +95,30 @@ Publish local folders to GitHub directly from the app:
 ### Repository Details
 Double-click any repository for stats (stars, forks, watchers, issues), language breakdown, recent commits, clone URLs, and quick setup commands.
 
+### Automatic Updates
+- **Background checks** — looks for a new GitHub release 15 seconds after start and every 6 hours
+- **Status bar control** — click the version to check now, download an available update, or restart to install
+- **Automatic download** — on by default (Settings); a downloaded update also installs when you quit
+- **Verified downloads** — the installer is checked against the release's sha512 before installing
+
+## Safety
+
+Cleaning up means deleting and rewriting things, so the app is built to keep your work safe:
+
+- **Local history stays** — publishing never deletes an existing `.git` folder; branches, tags and stashes are kept, and a failed push restores your previous remote
+- **Rewrites leave a backup** — before commit messages are rewritten, the old history is saved as a `backup/<branch>-<timestamp>` branch; merge commits are refused, and nothing changes if any selected commit can't be found
+- **Your token only goes to GitHub** — stored with OS encryption, sent only to `github.com`, never written into URLs, `.git/config` or error messages
+- **Every change is logged** — deletes, renames, visibility changes and commit rewrites are recorded in the operation history
+
 ## Tech Stack
 
 | Layer | Technology |
 |---|---|
 | Desktop runtime | Electron 44 |
-| Language / runtime | Node.js 20 |
-| Packaging | electron-builder |
+| Language / runtime | Node.js 20+ |
+| Packaging | electron-builder (NSIS) |
+| Updates | electron-updater (GitHub Releases) |
+| Tests | `node:test` |
 | Icons | sharp, png-to-ico |
 | APIs | GitHub REST API, OpenRouter API (Moonshot AI / Kimi) |
 
@@ -111,12 +129,17 @@ github-repo-cleaner-ai/
 ├── main.js              # Electron main process
 ├── preload.js           # Secure IPC bridge
 ├── index.html           # Renderer UI
+├── lib/safety.js        # Pure, tested helpers (validation, token handling, rewrite planning)
+├── test/                # node:test suite (npm test)
 ├── generate-icons.js    # Builds icon.png + multi-size icon.ico
 ├── generate-sidebar.js  # Sidebar generation helper
+├── docs/banner/         # Banner source (npm run banner)
 ├── assets/              # Icons and banner
 │   ├── banner.png
 │   ├── icon.png
-│   └── icon.ico
+│   ├── icon.ico
+│   └── icon-titlebar.png
+├── release.sh           # Test, build, publish release, update website
 └── package.json
 ```
 
@@ -155,6 +178,8 @@ Open **Settings** in the sidebar and configure:
 | Default Branch | `main` or `master` |
 | Auto `.gitignore` | Pre-check the `.gitignore` box for new folders |
 | Commit Template | Default commit message style for new repos |
+| Generate AI README | Optional; commits an AI README after publishing (no preview) |
+| Download updates automatically | On by default; updates are always checked automatically |
 
 ### Getting a GitHub Token
 1. Go to **GitHub → Settings → Developer settings → Personal access tokens**
@@ -184,8 +209,14 @@ Open **Settings** in the sidebar and configure:
 ## Building & Releases
 
 ```bash
+# Run the tests
+npm test
+
 # Generate app icons from assets/icon-original.png
 npm run icons
+
+# Regenerate the README banner from docs/banner/banner.html
+npm run banner
 
 # Build the Windows installer (NSIS)
 npm run build

@@ -8,7 +8,8 @@
     "build": "electron-builder --win --publish never",
     "build:linux": "electron-builder --linux AppImage deb --publish never",
     "build:portable": "electron-builder --win portable --publish never",
-    "icons": "node generate-icons.js"
+    "icons": "node generate-icons.js",
+    "banner": "electron docs/banner/render.js"
   },
   "devDependencies": {
     "electron": "^44.5.1",
