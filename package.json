@@ -1,19 +1,20 @@
 {
   "name": "github-repo-organizer",
-  "version": "2.7.0",
+  "version": "2.8.0",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
+    "test": "node --test",
     "build": "electron-builder --win",
     "build:linux": "electron-builder --linux AppImage deb",
     "build:portable": "electron-builder --win portable",
     "icons": "node generate-icons.js"
   },
   "devDependencies": {
-    "electron": "^28.1.0",
-    "electron-builder": "^26.8.1",
+    "electron": "^44.5.1",
+    "electron-builder": "^26.15.3",
     "png-to-ico": "^3.0.1",
-    "sharp": "^0.34.5"
+    "sharp": "^0.35.5"
   },
   "description": "Organize, manage and clean up your GitHub repositories with AI-powered features",
   "author": {
@@ -36,6 +37,7 @@
       "main.js",
       "preload.js",
       "index.html",
+      "lib/**/*",
       "assets/**/*",
       "!.env",
       "!secrets.json",
@@ -54,12 +56,17 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ]
     },
     "linux": {
-      "target": ["AppImage", "deb"],
+      "target": [
+        "AppImage",
+        "deb"
+      ],
       "icon": "assets/icon.png",
       "category": "Utility",
       "maintainer": "Umut Çelik (palamut62) <palamut62@users.noreply.github.com>"

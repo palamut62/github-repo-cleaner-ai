@@ -22,11 +22,20 @@ set -euo pipefail
 VERSION="${1:?Usage: ./release.sh <version> \"<commit message>\"}"
 MSG="${2:?Usage: ./release.sh <version> \"<commit message>\"}"
 
-APP_DIR="C:/Users/umuti/Projects/github-repo-cleaner-ai"
-WEB_DIR="C:/Users/umuti/Projects/github-repo-cleaner-ai_web_page"
+APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WEB_DIR="${WEB_DIR:-$APP_DIR/../github-repo-cleaner-ai_web_page}"
 EXE="dist/GitHub Repo Organizer Setup ${VERSION}.exe"
 
 cd "$APP_DIR"
+
+PKG_VERSION="$(node -p "require('./package.json').version")"
+if [ "$PKG_VERSION" != "$VERSION" ]; then
+  echo "ERROR: package.json version is ${PKG_VERSION}, not ${VERSION}. Update package.json first."
+  exit 1
+fi
+
+echo "==> [0/5] Run tests"
+npm test
 
 echo "==> [1/5] Commit + push main repo"
 git add -A
@@ -62,6 +71,6 @@ git push origin main
 
 echo "==> [5/5] Launch installer"
 cd "$APP_DIR"
-cmd.exe /c start "" "GitHub Repo Organizer Setup ${VERSION}.exe"
+cmd.exe /c start "" "$(cygpath -w "$APP_DIR/$EXE" 2>/dev/null || echo "$EXE")"
 
 echo "✅ Release v${VERSION} complete: push, build, release, web, install."

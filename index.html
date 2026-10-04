@@ -1664,7 +1664,7 @@
 
     <!-- Custom Confirm Dialog -->
     <div id="confirmDialog" class="confirm-overlay">
-        <div class="confirm-box">
+        <div class="confirm-box" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
             <div class="confirm-icon" id="confirmIcon"><svg class="ico"><use href="#i-warning"/></svg></div>
             <div class="confirm-title" id="confirmTitle">Confirm Action</div>
             <div class="confirm-message" id="confirmMessage">Are you sure?</div>
@@ -1925,27 +1925,26 @@
             <div
                 style="margin-top: 15px; font-size: 11px; color: #666; text-align: center; display: flex; flex-direction: column; gap: 4px; align-items: center;">
                 <div style="display: flex; align-items: center; gap: 6px; opacity: 0.8;">
-                    <span>Made with <svg class="ico" style="width:12px;height:12px;vertical-align:middle;"><use href="#i-heart"/></svg> by <strong style="color:var(--text-primary)">palamut62</strong></span>
-                    <div style="cursor: pointer; display: flex; align-items: center; transition: opacity 0.2s;"
-                        onclick="window.api.openExternal('https://github.com/palamut62/github-repo-cleaner-ai')"
-                        title="View Source on GitHub">
+                    <span>Product Owner: <strong style="color:var(--text-primary)">Umut Çelik</strong></span>
+                    <a href="#" onclick="window.api.openExternal('https://github.com/palamut62');return false;"
+                        title="Umut Çelik on GitHub" aria-label="Umut Çelik on GitHub"
+                        style="display: flex; align-items: center; transition: opacity 0.2s;">
                         <svg height="16" viewBox="0 0 16 16" version="1.1" width="16" aria-hidden="true"
                             style="fill: var(--text-primary);">
                             <path
                                 d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z">
                             </path>
                         </svg>
-                    </div>
-                    <div
-                        style="cursor: pointer; display: flex; align-items: center; transition: opacity 0.2s;"
-                        onclick="window.api.openExternal('https://x.com/palamut62')"
-                        title="Umut Çelik (palamut62) on X">
-                        <svg class="ico" viewBox="0 0 24 24" style="width: 15px; height: 15px; fill: var(--text-primary);">
+                    </a>
+                    <a href="#" onclick="window.api.openExternal('https://x.com/palamut62');return false;"
+                        title="Umut Çelik on X" aria-label="Umut Çelik on X"
+                        style="display: flex; align-items: center; transition: opacity 0.2s;">
+                        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true" style="width: 15px; height: 15px; fill: var(--text-primary);">
                             <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
                         </svg>
-                    </div>
+                    </a>
                 </div>
-                <div id="sidebarVersion" style="opacity: 0.5; font-size: 10px;">GitHub Repo Organizer v2.7.0</div>
+                <div id="sidebarVersion" role="link" tabindex="0" title="View source on GitHub" style="opacity: 0.5; font-size: 10px; cursor: pointer;" onclick="window.api.openExternal('https://github.com/palamut62/github-repo-cleaner-ai')" onkeydown="if(event.key==='Enter')this.click()">GitHub Repo Organizer v2.8.0</div>
             </div>
         </div>
     </div>
@@ -2430,8 +2429,8 @@
 
     <!-- ═══════ EXPLORE: REPO DETAIL MODAL ═══════ -->
     <div id="exploreDetailModal" class="modal-overlay" style="display:none;">
-        <div class="modal-box" style="position:relative; padding-top:36px; max-width:700px; width:90%; max-height:85vh; overflow-y:auto;">
-            <div class="modal-close-btn" onclick="closeExploreDetailModal()" title="Close"><svg class="ico"><use href="#i-cross"/></svg></div>
+        <div class="modal-box" role="dialog" aria-modal="true" style="position:relative; padding-top:36px; max-width:700px; width:90%; max-height:85vh; overflow-y:auto;">
+            <div class="modal-close-btn" role="button" tabindex="0" aria-label="Close" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="closeExploreDetailModal()" title="Close"><svg class="ico"><use href="#i-cross"/></svg></div>
             <h3 id="exploreDetailTitle" style="margin-top:0; margin-bottom:16px; color:var(--accent-blue); font-size:18px;"></h3>
             <div id="exploreDetailBody" style="display:flex; flex-direction:column; gap:16px;">
                 <div style="text-align:center; padding:30px; color:var(--text-secondary);">Loading...</div>
@@ -2441,9 +2440,9 @@
 
     <!-- Settings Modal -->
     <div id="settingsModal" class="modal-overlay">
-        <div class="modal-box" style="position: relative; padding-top: 36px; max-width: 440px; width: 88%;">
+        <div class="modal-box" role="dialog" aria-modal="true" style="position: relative; padding-top: 36px; max-width: 440px; width: 88%;">
             <div onclick="document.getElementById('settingsModal').style.display='none'"
-                class="modal-close-btn" title="Close"><svg class="ico"><use href="#i-cross"/></svg></div>
+                class="modal-close-btn" role="button" tabindex="0" aria-label="Close" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" title="Close"><svg class="ico"><use href="#i-cross"/></svg></div>
             <h3 style="margin-top: 0; margin-bottom: 12px; font-size: 14px;">Settings</h3>
 
             <!-- Tabs -->
@@ -2526,6 +2525,10 @@
                     <input type="checkbox" id="settingsAutoGitignore" style="cursor:pointer; transform:scale(1.1);">
                     <label for="settingsAutoGitignore" style="font-size:12px; cursor:pointer;">Auto-generate .gitignore</label>
                 </div>
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                    <input type="checkbox" id="settingsAutoReadme" style="cursor:pointer; transform:scale(1.1);">
+                    <label for="settingsAutoReadme" style="font-size:12px; cursor:pointer;" title="File names are sent to OpenRouter and the generated README is committed to the new repo without a preview.">Generate AI README after publish (no preview)</label>
+                </div>
 
                 <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); margin: 10px 0 8px;">Commit Template</div>
                 <select id="settingsCommitTemplate" class="input-dark" style="width:100%; padding:7px; margin-bottom:6px; font-size:12px;" onchange="onSettingsTemplateChange()">
@@ -2548,10 +2551,10 @@
 
     <!-- Help Modal -->
     <div id="helpModal" class="modal-overlay">
-        <div class="modal-box"
+        <div class="modal-box" role="dialog" aria-modal="true"
             style="max-width: 650px; font-size: 12px; line-height: 1.6; position: relative; padding-top: 36px;">
             <div onclick="document.getElementById('helpModal').style.display='none'"
-                class="modal-close-btn" title="Close"><svg class="ico"><use href="#i-cross"/></svg></div>
+                class="modal-close-btn" role="button" tabindex="0" aria-label="Close" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" title="Close"><svg class="ico"><use href="#i-cross"/></svg></div>
             <h3 style="margin: 0 0 16px 0; color: var(--accent-blue); font-size: 15px;">User Guide</h3>
 
             <div style="max-height: 450px; overflow-y: auto; padding-right: 8px;">
@@ -2666,10 +2669,10 @@
 
     <!-- Rename Modal -->
     <div id="renameModal" class="modal-overlay">
-        <div class="modal-box"
+        <div class="modal-box" role="dialog" aria-modal="true"
             style="max-width: 900px; height: 80%; display: flex; flex-direction: column; position: relative; padding-top: 36px;">
             <div onclick="document.getElementById('renameModal').style.display='none'"
-                class="modal-close-btn" title="Close"><svg class="ico"><use href="#i-cross"/></svg></div>
+                class="modal-close-btn" role="button" tabindex="0" aria-label="Close" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" title="Close"><svg class="ico"><use href="#i-cross"/></svg></div>
             <h3 style="margin: 0 0 10px 0; color: var(--accent-blue);">AI Suggestions</h3>
             <div
                 style="flex: 1; overflow-y: auto; background: var(--bg-body); border-radius: 8px; padding: 10px; margin-bottom: 10px;">
@@ -2692,9 +2695,9 @@
 
     <!-- Custom Alert -->
     <div id="customModal" class="modal-overlay">
-        <div class="modal-box" style="position: relative; padding-top: 36px;">
+        <div class="modal-box" role="dialog" aria-modal="true" style="position: relative; padding-top: 36px;">
             <div onclick="document.getElementById('customModal').style.display='none'"
-                class="modal-close-btn" title="Close"><svg class="ico"><use href="#i-cross"/></svg></div>
+                class="modal-close-btn" role="button" tabindex="0" aria-label="Close" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" title="Close"><svg class="ico"><use href="#i-cross"/></svg></div>
             <h3 id="modalTitle">Title</h3>
             <div id="modalContent" style="margin-bottom: 20px;">Content</div>
             <button class="btn-primary"
@@ -2704,10 +2707,10 @@
 
     <!-- AI Description Modal -->
     <div id="descriptionModal" class="modal-overlay">
-        <div class="modal-box"
+        <div class="modal-box" role="dialog" aria-modal="true"
             style="max-width: 800px; height: 70%; display: flex; flex-direction: column; position: relative; padding-top: 36px;">
             <div onclick="document.getElementById('descriptionModal').style.display='none'"
-                class="modal-close-btn" title="Close"><svg class="ico"><use href="#i-cross"/></svg></div>
+                class="modal-close-btn" role="button" tabindex="0" aria-label="Close" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" title="Close"><svg class="ico"><use href="#i-cross"/></svg></div>
             <h3 style="margin: 0 0 10px 0; color: var(--accent-blue);">AI Description Generator</h3>
             <p style="color: var(--text-secondary); font-size: 12px; margin-bottom: 15px;">
                 AI will analyze the README and suggest a professional description for each selected repository.
@@ -2734,10 +2737,10 @@
 
     <!-- AI README Modal -->
     <div id="readmeModal" class="modal-overlay">
-        <div class="modal-box"
+        <div class="modal-box" role="dialog" aria-modal="true"
             style="max-width: 900px; height: 85%; display: flex; flex-direction: column; position: relative; padding-top: 36px;">
             <div onclick="document.getElementById('readmeModal').style.display='none'"
-                class="modal-close-btn" title="Close"><svg class="ico"><use href="#i-cross"/></svg></div>
+                class="modal-close-btn" role="button" tabindex="0" aria-label="Close" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" title="Close"><svg class="ico"><use href="#i-cross"/></svg></div>
             <h3 style="margin: 0 0 10px 0; color: var(--accent-green);">AI README Creator</h3>
             <p style="color: var(--text-secondary); font-size: 12px; margin-bottom: 10px;">
                 AI will analyze the repository files and generate a professional README.md
@@ -2757,9 +2760,9 @@
 
     <!-- Setup / Clone Info Modal -->
     <div id="setupModal" class="modal-overlay">
-        <div class="modal-box" style="max-width: 700px; position: relative; padding-top: 36px;">
+        <div class="modal-box" role="dialog" aria-modal="true" style="max-width: 700px; position: relative; padding-top: 36px;">
             <div onclick="document.getElementById('setupModal').style.display='none'"
-                class="modal-close-btn" title="Close"><svg class="ico"><use href="#i-cross"/></svg></div>
+                class="modal-close-btn" role="button" tabindex="0" aria-label="Close" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" title="Close"><svg class="ico"><use href="#i-cross"/></svg></div>
             <h3 style="margin: 0 0 15px 0; color: var(--accent-yellow);">Setup / Clone Instructions</h3>
             <div id="setupContent" style="color: var(--text-secondary); font-size: 13px;">
                 <p>Select a repository first.</p>
@@ -2769,10 +2772,10 @@
 
     <!-- Repo Detail Modal (Double-click) -->
     <div id="repoDetailModal" class="modal-overlay">
-        <div class="modal-box"
+        <div class="modal-box" role="dialog" aria-modal="true"
             style="max-width: 520px; max-height: 85%; display: flex; flex-direction: column; padding: 16px; position: relative;">
             <div onclick="document.getElementById('repoDetailModal').style.display='none'"
-                class="modal-close-btn" title="Close"><svg class="ico"><use href="#i-cross"/></svg></div>
+                class="modal-close-btn" role="button" tabindex="0" aria-label="Close" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" title="Close"><svg class="ico"><use href="#i-cross"/></svg></div>
             <div id="repoDetailContent" style="flex: 1; overflow-y: auto;">
                 <p style="color: var(--text-secondary);">Loading...</p>
             </div>
@@ -2781,9 +2784,9 @@
 
     <!-- Visibility Modal -->
     <div id="visibilityModal" class="modal-overlay">
-        <div class="modal-box" style="max-width: 500px; position: relative; padding-top: 36px;">
+        <div class="modal-box" role="dialog" aria-modal="true" style="max-width: 500px; position: relative; padding-top: 36px;">
             <div onclick="document.getElementById('visibilityModal').style.display='none'"
-                class="modal-close-btn" title="Close"><svg class="ico"><use href="#i-cross"/></svg></div>
+                class="modal-close-btn" role="button" tabindex="0" aria-label="Close" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" title="Close"><svg class="ico"><use href="#i-cross"/></svg></div>
             <h3 style="margin: 0 0 15px 0; color: var(--accent-blue);">Change Visibility</h3>
             <p style="color: var(--text-secondary); font-size: 12px; margin-bottom: 15px;">
                 Change the visibility of selected repositories.
@@ -2808,9 +2811,9 @@
 
     <!-- Topics Modal -->
     <div id="topicsModal" class="modal-overlay">
-        <div class="modal-box" style="max-width: 600px; position: relative; padding-top: 36px;">
+        <div class="modal-box" role="dialog" aria-modal="true" style="max-width: 600px; position: relative; padding-top: 36px;">
             <div onclick="document.getElementById('topicsModal').style.display='none'"
-                class="modal-close-btn" title="Close"><svg class="ico"><use href="#i-cross"/></svg></div>
+                class="modal-close-btn" role="button" tabindex="0" aria-label="Close" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" title="Close"><svg class="ico"><use href="#i-cross"/></svg></div>
             <h3 style="margin: 0 0 15px 0; color: var(--accent-yellow);">Manage Topics</h3>
             <p style="color: var(--text-secondary); font-size: 12px; margin-bottom: 15px;">
                 Add or remove topics from selected repositories. Topics help categorize and discover repositories.
@@ -2859,9 +2862,9 @@
 
     <!-- License Modal -->
     <div id="licenseModal" class="modal-overlay">
-        <div class="modal-box" style="max-width: 500px; position: relative; padding-top: 36px;">
+        <div class="modal-box" role="dialog" aria-modal="true" style="max-width: 500px; position: relative; padding-top: 36px;">
             <div onclick="document.getElementById('licenseModal').style.display='none'"
-                class="modal-close-btn" title="Close"><svg class="ico"><use href="#i-cross"/></svg></div>
+                class="modal-close-btn" role="button" tabindex="0" aria-label="Close" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" title="Close"><svg class="ico"><use href="#i-cross"/></svg></div>
             <h3 style="margin: 0 0 15px 0; color: var(--accent-green);">Add License</h3>
             <p style="color: var(--text-secondary); font-size: 12px; margin-bottom: 15px;">
                 Add a license file to selected repositories. This helps others understand how they can use your code.
@@ -2892,10 +2895,10 @@
 
     <!-- Analysis Modal -->
     <div id="analysisModal" class="modal-overlay">
-        <div class="modal-box"
+        <div class="modal-box" role="dialog" aria-modal="true"
             style="max-width: 900px; max-height: 90%; display: flex; flex-direction: column; position: relative; padding-top: 36px;">
             <div onclick="document.getElementById('analysisModal').style.display='none'"
-                class="modal-close-btn" title="Close"><svg class="ico"><use href="#i-cross"/></svg></div>
+                class="modal-close-btn" role="button" tabindex="0" aria-label="Close" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" title="Close"><svg class="ico"><use href="#i-cross"/></svg></div>
             <h3 style="margin: 0 0 15px 0; color: var(--accent-blue);">Repository Analysis</h3>
             <div id="analysisContent" style="flex: 1; overflow-y: auto; padding-right: 10px;">
                 <p style="color: var(--text-secondary); text-align: center; padding: 40px;">Click "Run Analysis" to scan
@@ -2911,10 +2914,10 @@
 
     <!-- Repo Inspector Modal -->
     <div id="repoAnalyzerModal" class="modal-overlay">
-        <div class="modal-box"
+        <div class="modal-box" role="dialog" aria-modal="true"
             style="max-width: 900px; height: 85%; display: flex; flex-direction: column; position: relative; padding-top: 36px;">
             <div onclick="document.getElementById('repoAnalyzerModal').style.display='none'"
-                class="modal-close-btn" title="Close"><svg class="ico"><use href="#i-cross"/></svg></div>
+                class="modal-close-btn" role="button" tabindex="0" aria-label="Close" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" title="Close"><svg class="ico"><use href="#i-cross"/></svg></div>
             <h3 style="margin: 0 0 15px 0; color: var(--accent-purple);">Repo Inspector</h3>
             <p style="color: var(--text-secondary); font-size: 12px; margin-bottom: 15px;">
                 Enter a GitHub repository URL to analyze its structure, technologies, and architecture. AI will create a
@@ -2957,9 +2960,9 @@
 
     <!-- AI Commit Fixer Modal -->
     <div id="aiCommitModal" class="modal-overlay">
-        <div class="modal-box" style="position: relative; max-width: 900px; padding-top: 36px;">
+        <div class="modal-box" role="dialog" aria-modal="true" style="position: relative; max-width: 900px; padding-top: 36px;">
             <div onclick="document.getElementById('aiCommitModal').style.display='none'"
-                class="modal-close-btn" title="Close"><svg class="ico"><use href="#i-cross"/></svg></div>
+                class="modal-close-btn" role="button" tabindex="0" aria-label="Close" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" title="Close"><svg class="ico"><use href="#i-cross"/></svg></div>
             <h3 style="margin-top: 0; margin-bottom: 20px;">AI Commit Fixer</h3>
 
             <div style="margin-bottom: 20px;">
@@ -3078,6 +3081,10 @@
         // State
         let allRepos = [];
         let filteredRepos = [];
+        // Selected repos by full_name. Kept across pages; actions only use
+        // repos that are still in the current filtered list.
+        const selectedRepoNames = new Set();
+
         let currentFilter = 'all';
         let currentSort = 'newest';
         let currentPage = 1;
@@ -3236,6 +3243,7 @@
                 loadDashboard();
             } else {
                 document.getElementById('status').innerText = 'No token found. Please open Settings.';
+                document.getElementById('dashWelcomeSub').textContent = 'No GitHub token yet. Open Settings (gear icon, bottom left) and save a personal access token to get started.';
             }
         });
 
@@ -3243,17 +3251,18 @@
         document.addEventListener('keydown', (e) => {
             // Esc → close topmost modal / confirm dialog / clear search
             if (e.key === 'Escape') {
-                const openModals = Array.from(document.querySelectorAll('.modal-overlay'))
-                    .filter(m => getComputedStyle(m).display === 'flex');
-                if (openModals.length > 0) {
-                    openModals[openModals.length - 1].style.display = 'none';
-                    e.preventDefault();
-                    return;
-                }
+                // The confirm dialog sits on top of modals, so close it first.
                 const confirmEl = document.getElementById('confirmDialog');
                 if (confirmEl && getComputedStyle(confirmEl).display === 'flex') {
                     confirmEl.style.display = 'none';
                     if (confirmResolve) { confirmResolve(false); confirmResolve = null; }
+                    e.preventDefault();
+                    return;
+                }
+                const openModals = Array.from(document.querySelectorAll('.modal-overlay'))
+                    .filter(m => getComputedStyle(m).display === 'flex');
+                if (openModals.length > 0) {
+                    openModals[openModals.length - 1].style.display = 'none';
                     e.preventDefault();
                     return;
                 }
@@ -3501,8 +3510,8 @@
                     const avatar = repo.owner.avatar_url;
 
                     const card = document.createElement('div');
-                    card.className = `repo-card ${document.getElementById('selectAll')?.checked ? 'selected' : ''}`; // Simple logic, refinement needed for individual select persistence
-                    // Better selection logic: check if repo is in a 'selected' set? For now, standard checkbox.
+                    const isSelected = selectedRepoNames.has(repo.full_name);
+                    card.className = `repo-card ${isSelected ? 'selected' : ''}`;
 
                     let licenseBadge = '<div class="badge badge-no-license">No License</div>';
                     if (repo.license) {
@@ -3513,7 +3522,7 @@
                     const visibilityBadge = repo.private ? '<div class="badge badge-private">Private</div>' : '<div class="badge badge-public">Public</div>';
 
                     card.innerHTML = `
-                        <input type="checkbox" class="card-check" value="${repo.full_name}" onclick="event.stopPropagation()">
+                        <input type="checkbox" class="card-check" value="${escHtml(repo.full_name)}" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation()">
                         <div class="card-header">
                             <img src="${avatar}" class="repo-icon" alt="icon">
                             <div class="repo-details">
@@ -3542,15 +3551,13 @@
                             </div>
                         </div>
                     `;
-                    // Click card to toggle check
+                    // Click card (or its checkbox) to toggle selection; selection survives paging
+                    const chk = card.querySelector('.card-check');
+                    chk.addEventListener('change', () => setRepoSelected(repo.full_name, chk.checked, card));
                     card.onclick = (e) => {
-                        const chk = card.querySelector('.card-check');
-                        if (e.target !== chk) {
-                            chk.checked = !chk.checked;
-                        }
-
-                        if (chk.checked) card.classList.add('selected');
-                        else card.classList.remove('selected');
+                        if (e.target === chk) return;
+                        chk.checked = !chk.checked;
+                        setRepoSelected(repo.full_name, chk.checked, card);
                     };
 
                     // Double-click to open detail modal
@@ -3562,6 +3569,9 @@
                     grid.appendChild(card);
                 });
             }
+
+            const selectAllChk = document.getElementById('selectAll');
+            if (selectAllChk) selectAllChk.checked = pageRepos.length > 0 && pageRepos.every(r => selectedRepoNames.has(r.full_name));
 
             // Pagination Info
             document.getElementById('pageInfo').innerText = `Page ${currentPage} / ${maxPage}`;
@@ -3596,17 +3606,18 @@
             } catch (e) { /* traffic API may be unavailable; leave placeholders */ }
         }
 
+        function setRepoSelected(fullName, selected, card) {
+            if (selected) selectedRepoNames.add(fullName);
+            else selectedRepoNames.delete(fullName);
+            if (card) card.classList.toggle('selected', selected);
+        }
+
+        // Selects/deselects the repos on the current page.
         function toggleSelectAll() {
             const selectAllChk = document.getElementById('selectAll');
-            const checks = document.querySelectorAll('.card-check');
-            checks.forEach(chk => {
+            document.querySelectorAll('.card-check').forEach(chk => {
                 chk.checked = selectAllChk.checked;
-                // Trigger any visual state if needed
-                const card = chk.closest('.repo-card');
-                if (card) {
-                    if (chk.checked) card.classList.add('selected');
-                    else card.classList.remove('selected');
-                }
+                setRepoSelected(chk.value, chk.checked, chk.closest('.repo-card'));
             });
         }
 
@@ -3678,6 +3689,7 @@
             document.getElementById('settingsDefaultVisibility').value = config.defaultVisibility || 'public';
             document.getElementById('settingsDefaultBranch').value     = config.defaultBranch || 'main';
             document.getElementById('settingsAutoGitignore').checked   = config.autoGitignore !== false;
+            document.getElementById('settingsAutoReadme').checked      = config.autoReadme === true;
 
             const tmplType   = config.commitTemplateType || 'simple';
             const tmplCustom = config.commitTemplateCustom || '';
@@ -3784,14 +3796,20 @@
         async function saveSettings() {
             const t = document.getElementById('settingsToken').value;
             const k = document.getElementById('settingsRouterKey').value;
-            await window.api.saveToken(t);
-            await window.api.saveRouterKey(k);
+            const tokenRes = await window.api.saveToken(t);
+            const keyRes = await window.api.saveRouterKey(k);
+            if ((tokenRes && tokenRes.success === false) || (keyRes && keyRes.success === false)) {
+                showToast('Could not save your keys.', 'error');
+            } else if ((t && tokenRes && !tokenRes.persisted) || (k && keyRes && !keyRes.persisted)) {
+                showToast('Secure OS storage is not available. Keys are kept for this session only and are not written to disk.', 'warning', { duration: 8000 });
+            }
 
             // Save app config and refresh cache
             const newConfig = {
                 defaultVisibility:    document.getElementById('settingsDefaultVisibility').value,
                 defaultBranch:        document.getElementById('settingsDefaultBranch').value,
                 autoGitignore:        document.getElementById('settingsAutoGitignore').checked,
+                autoReadme:           document.getElementById('settingsAutoReadme').checked,
                 commitTemplateType:   document.getElementById('settingsCommitTemplate').value,
                 commitTemplateCustom: document.getElementById('settingsCommitCustom').value,
                 aiModel:             document.getElementById('settingsAIModel').value,
@@ -3854,15 +3872,16 @@
 
         // --- Actions ---
         function getSelected() {
-            const checks = document.querySelectorAll('.card-check:checked');
-            return Array.from(checks).map(c => c.value);
+            const visible = new Set(filteredRepos.map(r => r.full_name));
+            return Array.from(selectedRepoNames).filter(name => visible.has(name));
         }
 
         async function deleteSelected() {
             const selected = getSelected();
             if (selected.length === 0) return showToast('Select repos first.', 'warning');
 
-            const confirmed = await showConfirm(`Delete ${selected.length} repos? This is PERMANENT.`, {
+            const preview = selected.slice(0, 10).join('\n') + (selected.length > 10 ? `\n…and ${selected.length - 10} more` : '');
+            const confirmed = await showConfirm(`Delete ${selected.length} repos? This is PERMANENT.\n\n${preview}`, {
                 type: 'danger',
                 title: 'Delete Repositories',
                 okText: 'Delete',
@@ -3887,8 +3906,9 @@
                 showToast(`${selected.length} repository(ies) deleted successfully!`, 'success');
             } else {
                 const names = failed.map(r => `${r.name}: ${r.error || 'unknown error'}`).join('\n');
-                showToast(`${selected.length - failed.length} deleted, ${failed.length} failed:\n${names}`, 'error', { raw: true, duration: 8000 });
+                showToast(`${selected.length - failed.length} deleted, ${failed.length} failed:\n${names}`, 'error', { duration: 8000 });
             }
+            (results || []).filter(r => r.ok).forEach(r => selectedRepoNames.delete(r.name));
             loadRepos(); // Refresh even on partial failure — deleted ones are gone
         }
 
@@ -4005,7 +4025,7 @@
             if (failed.length === 0) {
                 showToast(`${results.length} repository(ies) renamed successfully!`, 'success');
             } else {
-                showToast(`${results.length - failed.length} renamed, ${failed.length} failed:\n${failed.map(f => `${f.name}: ${f.status}`).join('\n')}`, 'error', { raw: true, duration: 8000 });
+                showToast(`${results.length - failed.length} renamed, ${failed.length} failed:\n${failed.map(f => `${f.name}: ${f.status}`).join('\n')}`, 'error', { duration: 8000 });
             }
             document.getElementById('renameModal').style.display = 'none';
             btn.innerText = 'Confirm & Rename';
@@ -4598,7 +4618,7 @@ npm start</pre>
             btn.disabled = false;
 
             if (!result.success) {
-                document.getElementById('analysisContent').innerHTML = `<p style="color: var(--danger);">Error: ${result.error}</p>`;
+                document.getElementById('analysisContent').innerHTML = `<p style="color: var(--danger);">Error: ${escHtml(result.error)}</p>`;
                 return;
             }
 
@@ -4646,13 +4666,13 @@ npm start</pre>
                 </div>
             `).join('') || '<p style="color: var(--accent-green); font-size: 12px;">No large repos found.</p>';
 
-            // Unchanged forks
+            // Unchanged forks (verified: no commits ahead of upstream)
             const forkList = a.unchangedForks.slice(0, 10).map(r => `
                 <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border-color);">
-                    <span style="font-size: 12px;">${r.name}</span>
-                    <span style="font-size: 11px; color: var(--text-secondary);">⭐ ${r.stars}</span>
+                    <span style="font-size: 12px;">${escHtml(r.name)}</span>
+                    <span style="font-size: 11px; color: var(--text-secondary);">${r.behind || 0} behind upstream</span>
                 </div>
-            `).join('') || '<p style="color: var(--accent-green); font-size: 12px;">No forks found.</p>';
+            `).join('') || '<p style="color: var(--accent-green); font-size: 12px;">No unchanged forks found.</p>';
 
             const html = `
                 <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px;">
@@ -4670,7 +4690,7 @@ npm start</pre>
                     </div>
                     <div style="background: linear-gradient(135deg, rgba(248, 81, 73, 0.1), rgba(248, 81, 73, 0.05)); border: 1px solid var(--danger); border-radius: 8px; padding: 15px; text-align: center;">
                         <div style="font-size: 28px; font-weight: 700; color: var(--danger);">${a.unchangedForks.length}</div>
-                        <div style="font-size: 11px; color: var(--text-secondary);">Forks</div>
+                        <div style="font-size: 11px; color: var(--text-secondary);">Unchanged Forks</div>
                     </div>
                 </div>
 
@@ -4699,12 +4719,12 @@ npm start</pre>
 
                 <div style="background: var(--bg-card); border-radius: 8px; padding: 15px; margin-top: 15px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                        <h5 style="color: var(--accent-blue); margin: 0;">Forks (${a.unchangedForks.length})</h5>
+                        <h5 style="color: var(--accent-blue); margin: 0;">Unchanged Forks (${a.unchangedForks.length})</h5>
                         <button class="btn-dark" onclick="filterUnchangedForks(); document.getElementById('analysisModal').style.display='none';" style="padding: 4px 10px; font-size: 10px;">Filter</button>
                     </div>
                     ${forkList}
                     <p style="margin: 10px 0 0 0; font-size: 11px; color: var(--text-secondary);">
-                        <svg class="ico" style="width:14px;height:14px;vertical-align:middle;"><use href="#i-bulb"/></svg> Tip: Double-click on a fork to check if it has any changes compared to the parent repo.
+                        Compared with upstream: ${a.modifiedForks.length} fork(s) have your own commits and are excluded${a.unverifiedForks.length ? `; ${a.unverifiedForks.length} could not be verified and are excluded` : ''}.
                     </p>
                 </div>
 
@@ -4784,9 +4804,9 @@ npm start</pre>
                 filteredRepos = allRepos.filter(r => forkNames.includes(r.full_name));
                 currentPage = 1;
                 renderPage();
-                document.getElementById('status').innerText = `Showing ${filteredRepos.length} forked repos - Double-click to check for changes`;
+                document.getElementById('status').innerText = `Showing ${filteredRepos.length} fork(s) with no commits ahead of upstream`;
             } else {
-                showToast('No forked repos found!', 'info');
+                showToast('No unchanged forks found.', 'info');
             }
         }
 
@@ -4868,7 +4888,7 @@ npm start</pre>
                         <div style="text-align: center; padding: 60px 20px; color: var(--danger);">
                             <div style="font-size: 32px; margin-bottom: 15px;"><svg class="ico" style="width:32px;height:32px;"><use href="#i-cross-circle"/></svg></div>
                             <p style="margin: 0;">Analysis failed</p>
-                            <p style="margin: 10px 0 0 0; font-size: 12px; opacity: 0.8;">${result.error}</p>
+                            <p style="margin: 10px 0 0 0; font-size: 12px; opacity: 0.8;">${escHtml(result.error)}</p>
                         </div>
                     `;
                     showToast('Analysis failed: ' + result.error, 'error');
@@ -4878,7 +4898,7 @@ npm start</pre>
                     <div style="text-align: center; padding: 60px 20px; color: var(--danger);">
                         <div style="font-size: 32px; margin-bottom: 15px;"><svg class="ico" style="width:32px;height:32px;"><use href="#i-cross-circle"/></svg></div>
                         <p style="margin: 0;">Error occurred</p>
-                        <p style="margin: 10px 0 0 0; font-size: 12px; opacity: 0.8;">${e.message}</p>
+                        <p style="margin: 10px 0 0 0; font-size: 12px; opacity: 0.8;">${escHtml(e.message)}</p>
                     </div>
                 `;
                 showToast('Error: ' + e.message, 'error');
@@ -5003,7 +5023,7 @@ npm start</pre>
             const repoFullName = select.value;
 
             const confirmed = await showConfirm(
-                `WARNING: This will rewrite Git history for this repository on GitHub!\n\nIt will change the commit message for ${sha.substring(0, 7)} and FORCE PUSH the changes.\n\nAre you sure you want to continue?`,
+                `WARNING: This will rewrite Git history for this repository on GitHub!\n\nIt will change the commit message for ${sha.substring(0, 7)} and FORCE PUSH the changes. Commit signatures are not preserved; a backup branch of the old history is created first.\n\nAre you sure you want to continue?`,
                 { type: 'danger', title: 'Rewrite History Warning', okText: 'Yes, Rewrite History' }
             );
 
@@ -5016,7 +5036,7 @@ npm start</pre>
             const result = await window.api.applyCommitFix(token, repoFullName, sha, newMessage);
 
             if (result.success) {
-                showToast('Fix applied successfully! Repository history updated.', 'success');
+                showToast(`Fix applied. Previous history saved as branch "${result.backupBranch}".`, 'success');
                 // analyzeCommits(); // Refresh list - User requested to close instead
                 document.getElementById('aiCommitModal').style.display = 'none';
             } else {
@@ -5064,7 +5084,7 @@ npm start</pre>
             }
 
             if (result.success) {
-                showToast('All fixes applied successfully!', 'success');
+                showToast(`All fixes applied. Previous history saved as branch "${result.backupBranch || '-'}".`, 'success');
                 document.getElementById('aiCommitModal').style.display = 'none';
             } else {
                 showToast('Failed to apply bulk fixes: ' + result.error, 'error');
@@ -5184,6 +5204,7 @@ npm start</pre>
             if (!token) {
                 showToast('Please save a GitHub token in Settings first.', 'warning');
                 updateStatusbar({ connected: false });
+                document.getElementById('dashWelcomeSub').textContent = 'No GitHub token yet. Open Settings (gear icon, bottom left) and save a personal access token to get started.';
                 return;
             }
 
@@ -5360,12 +5381,13 @@ npm start</pre>
             }
             container.innerHTML = ops.map(op => {
                 const badge = opBadge(op);
-                const icon = op.type === 'publish' ? '<svg class="ico" style="width:12px;height:12px;"><use href="#i-rocket"/></svg>' : (op.type === 'fork-sync' ? '<svg class="ico" style="width:12px;height:12px;"><use href="#i-fork"/></svg>' : '<svg class="ico" style="width:12px;height:12px;"><use href="#i-trash"/></svg>');
-                const time = new Date(op.timestamp).toLocaleString();
+                const iconId = { publish: 'i-rocket', 'fork-sync': 'i-fork', delete: 'i-trash' }[op.type] || 'i-settings';
+                const icon = `<svg class="ico" style="width:12px;height:12px;"><use href="#${iconId}"/></svg>`;
+                const time = escHtml(new Date(op.timestamp).toLocaleString());
                 return `<div class="history-item">
                     <span style="font-size:18px;">${icon}</span>
                     <div style="flex:1; min-width:0;">
-                        <div style="font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${op.repoName || '—'}</div>
+                        <div style="font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escHtml(op.repoName || '—')}</div>
                         <div style="font-size:11px; color:var(--text-secondary);">${time}</div>
                     </div>
                     <span class="history-badge ${badge.cls}">${badge.label}</span>
@@ -5380,7 +5402,7 @@ npm start</pre>
                 synced:  { cls: 'badge-synced',   label: 'Synced' },
                 conflict:{ cls: 'badge-conflict', label: 'Conflict' }
             };
-            return map[op.status] || { cls: 'badge-error', label: op.status || '?' };
+            return map[op.status] || { cls: 'badge-error', label: escHtml(op.status || '?') };
         }
 
         // ════════════════════════════════════════════════════════════════════
@@ -5612,10 +5634,11 @@ npm start</pre>
 
             const reposToProcess = selected.map(i => projectFolders[i]);
 
-            // Validate repo names
+            // Validate repo names (same rule as GitHub; also enforced in the main process)
             for (const r of reposToProcess) {
-                if (!r.repoName || r.repoName.trim().length === 0) {
-                    showToast(`Repo name is empty for: ${r.folderName}`, 'error');
+                const name = (r.repoName || '').trim();
+                if (!/^[A-Za-z0-9._-]{1,100}$/.test(name) || name === '.' || name === '..') {
+                    showToast(`Invalid repo name for ${r.folderName}. Use letters, digits, ".", "_" or "-" (max 100).`, 'error');
                     return;
                 }
             }
@@ -5644,6 +5667,8 @@ npm start</pre>
                     autoGitignore: r.autoGitignore !== false,
                     detectedType: r.detectedType,
                     commitMessage: r.commitMessage || resolveCommitTemplate(r.repoName),
+                    defaultBranch: (cachedAppConfig && cachedAppConfig.defaultBranch) || 'main',
+                    autoReadme: !!(cachedAppConfig && cachedAppConfig.autoReadme),
                     routerKey: routerKey || ''
                 }))
             });
@@ -6063,9 +6088,9 @@ npm start</pre>
             container.innerHTML = '<div class="history-list">' + history.map(op => {
                 const badge = opBadge(op);
                 const icon  = typeIcons[op.type] || '<svg class="ico" style="width:12px;height:12px;"><use href="#i-settings"/></svg>';
-                const time  = new Date(op.timestamp).toLocaleString();
+                const time  = escHtml(new Date(op.timestamp).toLocaleString());
                 const detail = op.error ? `<div style="font-size:11px; color:var(--danger); margin-top:3px;">${escHtml(op.error)}</div>`
-                             : op.repoUrl ? `<div style="font-size:11px; margin-top:3px;"><a href="#" onclick="window.api.openExternal('${op.repoUrl}');return false;" style="color:var(--accent-blue);">${escHtml(op.repoUrl)}</a></div>`
+                             : op.repoUrl ? `<div style="font-size:11px; margin-top:3px;"><a href="#" data-url="${escHtml(op.repoUrl)}" onclick="window.api.openExternal(this.dataset.url);return false;" style="color:var(--accent-blue);">${escHtml(op.repoUrl)}</a></div>`
                              : op.message ? `<div style="font-size:11px; color:var(--text-secondary); margin-top:3px;">${escHtml(op.message)}</div>`
                              : '';
 
@@ -6474,17 +6499,19 @@ npm start</pre>
             starBtn.textContent = data.starred ? '\u2B50 Unstar' : '\u2B50 Star';
             starBtn.addEventListener('click', async () => {
                 const t = await window.api.getToken();
-                if (data.starred) {
-                    await window.api.unstarRepo({ token: t, fullName });
-                    starBtn.textContent = '\u2B50 Star';
-                    data.starred = false;
-                    showToast('Unstarred ' + fullName, 'success');
-                } else {
-                    await window.api.starRepo({ token: t, fullName });
-                    starBtn.textContent = '\u2B50 Unstar';
-                    data.starred = true;
-                    showToast('Starred ' + fullName, 'success');
+                const wasStarred = data.starred;
+                starBtn.disabled = true;
+                const res = wasStarred
+                    ? await window.api.unstarRepo({ token: t, fullName })
+                    : await window.api.starRepo({ token: t, fullName });
+                starBtn.disabled = false;
+                if (!res || !res.success) {
+                    showToast(`Failed to ${wasStarred ? 'unstar' : 'star'} ${fullName}: ${(res && res.error) || 'unknown error'}`, 'error');
+                    return;
                 }
+                data.starred = !wasStarred;
+                starBtn.textContent = data.starred ? '\u2B50 Unstar' : '\u2B50 Star';
+                showToast(`${data.starred ? 'Starred' : 'Unstarred'} ${fullName}`, 'success');
             });
             actions.appendChild(starBtn);
 

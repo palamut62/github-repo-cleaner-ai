@@ -2,7 +2,16 @@ const { app, BrowserWindow, ipcMain, dialog, Tray, Menu, nativeImage } = require
 const path = require('path');
 const https = require('https');
 const fs = require('fs');
-const { execSync, execFileSync, spawn } = require('child_process');
+const { execFile, spawn } = require('child_process');
+const {
+    isValidRepoName,
+    isValidBranchName,
+    isGithubHttpsUrl,
+    stripUrlCredentials,
+    redactSecrets,
+    gitAuthEnv,
+    planCommitRewrite
+} = require('./lib/safety');
 
 let mainWindow;
 let tray = null;
@@ -11,6 +20,7 @@ let currentUser = null; // To cache user info
 // Network timeouts so a stuck connection never hangs the app forever
 const GITHUB_TIMEOUT_MS = 30000;
 const OPENROUTER_TIMEOUT_MS = 120000;
+const CLONE_TIMEOUT_MS = 15 * 60 * 1000;
 
 // Use userData for writable config, __dirname for dev
 function getEnvPath() {
@@ -126,6 +136,29 @@ app.on('window-all-closed', () => {
     // Don't quit - keep running in tray
 });
 
+// Async git runner: never blocks the main process. Errors are redacted so a
+// token can never leak into the UI or logs.
+function runGit(args, cwd, { timeout = 30000, env = process.env, secrets = [] } = {}) {
+    return new Promise((resolve, reject) => {
+        execFile('git', args, { cwd, timeout, env, windowsHide: true, maxBuffer: 32 * 1024 * 1024 }, (err, stdout, stderr) => {
+            if (err) {
+                const detail = (stderr && String(stderr).trim()) || err.message || `git ${args[0]} failed`;
+                const e = new Error(redactSecrets(err.killed ? `git ${args[0]} timed out (${timeout / 1000}s)` : detail, secrets));
+                e.code = err.code;
+                return reject(e);
+            }
+            resolve(String(stdout));
+        });
+    });
+}
+
+// One long-running git job per local folder at a time.
+const busyFolders = new Set();
+function folderKey(folderPath) {
+    const resolved = path.resolve(folderPath);
+    return process.platform === 'win32' ? resolved.toLowerCase() : resolved;
+}
+
 // Helper for HTTP requests
 function githubRequest(path, method, token, body = null, extraHeaders = {}) {
     return new Promise((resolve, reject) => {
@@ -218,6 +251,8 @@ ipcMain.handle('deleteRepos', async (event, { token, repos }) => {
         } catch (error) {
             results.push({ name: repoFullName, status: 'error', ok: false, error: error.message });
         }
+        const last = results[results.length - 1];
+        addToHistory({ type: 'delete', repoName: repoFullName, status: last.ok ? 'success' : 'error', error: last.error || null, timestamp: new Date().toISOString() });
     }
     return results;
 });
@@ -242,14 +277,35 @@ function loadSecretsFile() {
     }
 }
 
+// Secrets that could not be stored securely live only for this session.
+const sessionSecrets = new Map();
+
+function isSecureStorageAvailable() {
+    if (!safeStorage.isEncryptionAvailable()) return false;
+    // On Linux 'basic_text' means a hardcoded key, i.e. effectively plaintext.
+    if (process.platform === 'linux' && typeof safeStorage.getSelectedStorageBackend === 'function') {
+        const backend = safeStorage.getSelectedStorageBackend();
+        if (backend === 'basic_text' || backend === 'unknown') return false;
+    }
+    return true;
+}
+
+// Returns true if persisted encrypted, false if kept in memory for this session only.
+// Never writes a plaintext secret to disk.
 function writeSecret(name, value) {
     const secrets = loadSecretsFile();
-    if (safeStorage.isEncryptionAvailable()) {
+    if (isSecureStorageAvailable()) {
         secrets[name] = { enc: true, data: safeStorage.encryptString(String(value)).toString('base64') };
-    } else {
-        secrets[name] = { enc: false, data: String(value) };
+        sessionSecrets.delete(name);
+        fs.writeFileSync(getSecretsPath(), JSON.stringify(secrets, null, 2));
+        return true;
     }
-    fs.writeFileSync(getSecretsPath(), JSON.stringify(secrets, null, 2));
+    sessionSecrets.set(name, String(value));
+    if (secrets[name]) {
+        delete secrets[name];
+        fs.writeFileSync(getSecretsPath(), JSON.stringify(secrets, null, 2));
+    }
+    return false;
 }
 
 function readEnvSecret(envKey) {
@@ -274,21 +330,24 @@ function scrubEnvSecret(envKey) {
 }
 
 function readSecret(name, legacyEnvKey) {
+    if (sessionSecrets.has(name)) return sessionSecrets.get(name);
     const entry = loadSecretsFile()[name];
     if (entry) {
         try {
             if (entry.enc) return safeStorage.decryptString(Buffer.from(entry.data, 'base64'));
+            // Plaintext entry written by an older version: encrypt it if we now can.
+            if (isSecureStorageAvailable()) writeSecret(name, entry.data);
             return entry.data;
         } catch (e) {
-            console.error(`Secret decrypt failed for ${name}:`, e);
+            // Corrupt/foreign ciphertext: treat as missing so the user re-enters it.
+            console.error(`Secret decrypt failed for ${name}:`, e.message);
         }
     }
     // Legacy migration: plaintext .env → encrypted secrets.json
     const legacy = readEnvSecret(legacyEnvKey);
     if (legacy) {
         try {
-            writeSecret(name, legacy);
-            scrubEnvSecret(legacyEnvKey);
+            if (writeSecret(name, legacy)) scrubEnvSecret(legacyEnvKey);
         } catch (e) { /* keep using legacy value */ }
     }
     return legacy;
@@ -305,15 +364,15 @@ ipcMain.handle('getToken', async () => {
 
 ipcMain.handle('saveToken', async (event, token) => {
     try {
-        writeSecret('githubToken', token);
-        scrubEnvSecret('GITHUB_TOKEN');
+        const persisted = writeSecret('githubToken', token);
+        if (persisted) scrubEnvSecret('GITHUB_TOKEN');
         // Identity cache belongs to the old token — drop it so the next
         // request re-resolves /user for the newly saved account.
         currentUser = null;
-        return true;
+        return { success: true, persisted };
     } catch (e) {
-        console.error('Token save error:', e);
-        return false;
+        console.error('Token save error:', e.message);
+        return { success: false, persisted: false };
     }
 });
 
@@ -328,11 +387,11 @@ ipcMain.handle('getRouterKey', async () => {
 
 ipcMain.handle('saveRouterKey', async (event, key) => {
     try {
-        writeSecret('routerKey', key);
-        scrubEnvSecret('ROUTER_KEY');
-        return true;
+        const persisted = writeSecret('routerKey', key);
+        if (persisted) scrubEnvSecret('ROUTER_KEY');
+        return { success: true, persisted };
     } catch (e) {
-        return false;
+        return { success: false, persisted: false };
     }
 });
 
@@ -478,14 +537,19 @@ ipcMain.handle('executeRenames', async (event, { token, renames }) => {
     const results = [];
 
     for (const item of renames) {
+        const fullName = `${item.owner}/${item.repo}`;
+        let error = null;
         try {
+            if (!isValidRepoName(item.newName)) throw new Error(`Invalid repository name "${item.newName}"`);
             await githubRequest(`/repos/${item.owner}/${item.repo}`, 'PATCH', token, {
                 name: item.newName
             });
-            results.push({ name: `${item.owner}/${item.repo}`, status: 'Success' });
+            results.push({ name: fullName, status: 'Success' });
         } catch (e) {
-            results.push({ name: `${item.owner}/${item.repo}`, status: `Error: ${e.message}` });
+            error = e.message;
+            results.push({ name: fullName, status: `Error: ${e.message}` });
         }
+        addToHistory({ type: 'rename', repoName: fullName, status: error ? 'error' : 'success', error, message: error ? null : `Renamed to ${item.newName}`, timestamp: new Date().toISOString() });
     }
     return results;
 });
@@ -901,34 +965,33 @@ ipcMain.handle('syncFork', async (event, { token, fullName }) => {
 });
 
 // 13b. Check fork behind/ahead status
+async function getForkComparison(token, fullName) {
+    const [owner, repo] = fullName.split('/');
+    const repoInfo = await githubRequest(`/repos/${owner}/${repo}`, 'GET', token);
+    if (!repoInfo.fork || !repoInfo.parent) throw new Error('Not a fork or no parent info');
+
+    const defaultBranch = repoInfo.default_branch || 'main';
+    const parentOwner = repoInfo.parent.owner.login;
+    const parentRepo = repoInfo.parent.name;
+    const parentBranch = repoInfo.parent.default_branch || 'main';
+
+    // Compare: upstream...fork
+    const comparison = await githubRequest(
+        `/repos/${parentOwner}/${parentRepo}/compare/${parentOwner}:${parentBranch}...${owner}:${defaultBranch}`,
+        'GET',
+        token
+    );
+    return {
+        behind: comparison.behind_by || 0,
+        ahead: comparison.ahead_by || 0,
+        status: comparison.status, // "diverged", "ahead", "behind", "identical"
+        parentFullName: repoInfo.parent.full_name
+    };
+}
+
 ipcMain.handle('checkForkStatus', async (event, { token, fullName }) => {
     try {
-        const [owner, repo] = fullName.split('/');
-        const repoInfo = await githubRequest(`/repos/${owner}/${repo}`, 'GET', token);
-
-        if (!repoInfo.fork || !repoInfo.parent) {
-            return { success: false, error: 'Not a fork or no parent info' };
-        }
-
-        const defaultBranch = repoInfo.default_branch || 'main';
-        const parentOwner = repoInfo.parent.owner.login;
-        const parentRepo = repoInfo.parent.name;
-        const parentBranch = repoInfo.parent.default_branch || 'main';
-
-        // Compare: upstream...fork
-        const comparison = await githubRequest(
-            `/repos/${parentOwner}/${parentRepo}/compare/${parentOwner}:${parentBranch}...${owner}:${defaultBranch}`,
-            'GET',
-            token
-        );
-
-        return {
-            success: true,
-            behind: comparison.behind_by || 0,
-            ahead: comparison.ahead_by || 0,
-            status: comparison.status, // "diverged", "ahead", "behind", "identical"
-            parentFullName: repoInfo.parent.full_name
-        };
+        return { success: true, ...(await getForkComparison(token, fullName)) };
     } catch (e) {
         return { success: false, error: e.message };
     }
@@ -948,6 +1011,8 @@ ipcMain.handle('changeVisibility', async (event, { token, repos, visibility }) =
         } catch (e) {
             results.push({ name: fullName, status: 'error', error: e.message });
         }
+        const last = results[results.length - 1];
+        addToHistory({ type: 'visibility', repoName: fullName, status: last.status, error: last.error || null, message: `Set to ${visibility}`, timestamp: new Date().toISOString() });
     }
 
     return results;
@@ -1002,82 +1067,34 @@ ipcMain.handle('getRepoTopics', async (event, { token, fullName }) => {
 });
 
 // 17. Add License File to Repository
-const LICENSE_TEMPLATES = {
-    'MIT': `MIT License
-
-Copyright (c) [year] [fullname]
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.`,
-
-    'Apache-2.0': `                                 Apache License
-                           Version 2.0, January 2004
-                        http://www.apache.org/licenses/
-
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-
-       http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.`,
-
-    'GPL-3.0': `                    GNU GENERAL PUBLIC LICENSE
-                       Version 3, 29 June 2007
-
- Copyright (C) 2007 Free Software Foundation, Inc. <https://fsf.org/>
- Everyone is permitted to copy and distribute verbatim copies
- of this license document, but changing it is not allowed.
-
-                            Preamble
-
-  The GNU General Public License is a free, copyleft license for
-software and other kinds of works.
-
-[Full GPL-3.0 text available at https://www.gnu.org/licenses/gpl-3.0.txt]`,
-
-    'ISC': `ISC License
-
-Copyright (c) [year] [fullname]
-
-Permission to use, copy, modify, and/or distribute this software for any
-purpose with or without fee is hereby granted, provided that the above
-copyright notice and this permission notice appear in all copies.
-
-THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
-REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
-INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
-OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-PERFORMANCE OF THIS SOFTWARE.`
+// Full, official license texts come from GitHub's Licenses API
+// (GET /licenses/{key}) instead of abbreviated local copies.
+const LICENSE_KEYS = {
+    'MIT': 'mit',
+    'Apache-2.0': 'apache-2.0',
+    'GPL-3.0': 'gpl-3.0',
+    'ISC': 'isc'
 };
 
 ipcMain.handle('addLicense', async (event, { token, repos, licenseType, authorName }) => {
     const results = [];
     const year = new Date().getFullYear();
 
-    let licenseContent = LICENSE_TEMPLATES[licenseType] || LICENSE_TEMPLATES['MIT'];
-    licenseContent = licenseContent.replace('[year]', year).replace('[fullname]', authorName || 'Author');
+    const licenseKey = LICENSE_KEYS[licenseType];
+    if (!licenseKey) {
+        return repos.map(name => ({ name, status: 'error', error: `Unsupported license: ${licenseType}` }));
+    }
+    let licenseContent;
+    try {
+        const license = await githubRequest(`/licenses/${licenseKey}`, 'GET', token);
+        // Only fill the copyright line placeholders; appendix/how-to-apply
+        // boilerplate in Apache/GPL is part of the official text.
+        licenseContent = license.body
+            .replace(/\[year\]/g, String(year))
+            .replace(/\[fullname\]/g, authorName || 'Author');
+    } catch (e) {
+        return repos.map(name => ({ name, status: 'error', error: `Could not fetch license text: ${e.message}` }));
+    }
 
     for (const fullName of repos) {
         const [owner, repo] = fullName.split('/');
@@ -1159,10 +1176,13 @@ ipcMain.handle('analyzeAllRepos', async (event, { token }) => {
             staleRepos: [],
             largeRepos: [],
             unchangedForks: [],
+            modifiedForks: [],
+            unverifiedForks: [],
             noStarsRepos: [],
             sizeByLanguage: {}
         };
 
+        const forks = [];
         for (const repo of allRepos) {
             const updatedAt = new Date(repo.updated_at);
             const pushedAt = new Date(repo.pushed_at);
@@ -1210,16 +1230,30 @@ ipcMain.handle('analyzeAllRepos', async (event, { token }) => {
                 });
             }
 
-            // Unchanged forks
-            if (repo.fork) {
-                analysis.unchangedForks.push({
+            if (repo.fork) forks.push(repo);
+        }
+
+        // Forks are only "unchanged" if the default branch has no commits ahead
+        // of upstream. Forks that cannot be compared are reported as unverified.
+        const CONCURRENCY = 5;
+        for (let i = 0; i < forks.length; i += CONCURRENCY) {
+            await Promise.all(forks.slice(i, i + CONCURRENCY).map(async (repo) => {
+                const entry = {
                     name: repo.name,
                     fullName: repo.full_name,
                     lastPush: repo.pushed_at,
                     size: repo.size,
                     stars: repo.stargazers_count
-                });
-            }
+                };
+                try {
+                    const cmp = await getForkComparison(token, repo.full_name);
+                    entry.ahead = cmp.ahead;
+                    entry.behind = cmp.behind;
+                    (cmp.ahead === 0 ? analysis.unchangedForks : analysis.modifiedForks).push(entry);
+                } catch (e) {
+                    analysis.unverifiedForks.push(entry);
+                }
+            }));
         }
 
         // Sort large repos by size
@@ -1530,182 +1564,85 @@ ipcMain.handle('analyzeCommitsAI', async (event, { token, routerKey, repoFullNam
     }
 });
 
-// 26. APPLY COMMIT FIX (REWRITE HISTORY)
-ipcMain.handle('applyCommitFix', async (event, { token, repoFullName, sha, newMessage }) => {
-    try {
-        const [owner, repo] = repoFullName.split('/');
+// 26/27. COMMIT MESSAGE REWRITE (single + bulk share one safe implementation)
+// - every requested SHA must be found, otherwise nothing changes
+// - merge commits in the range are rejected (REST rewrite would flatten the DAG)
+// - author/committer metadata is preserved
+// - a backup branch pointing at the old HEAD is created before the force update
+// - the update is aborted if the branch moved while we were rewriting
+async function rewriteCommitMessages(token, repoFullName, fixes) {
+    const [owner, repo] = String(repoFullName || '').split('/');
+    if (!owner || !repo) return { success: false, error: 'Invalid repository name.' };
 
-        // 1. Get the current Branch Head to know where to force push later
-        const defaultBranchData = await githubRequest(`/repos/${owner}/${repo}`, 'GET', token);
-        const defaultBranch = defaultBranchData.default_branch;
-        const refData = await githubRequest(`/repos/${owner}/${repo}/git/ref/heads/${defaultBranch}`, 'GET', token);
-        // const branchHeadSha = refData.object.sha; // Unused, we use commits array instead
+    const repoInfo = await githubRequest(`/repos/${owner}/${repo}`, 'GET', token);
+    const branch = repoInfo.default_branch;
+    const refPath = `/repos/${owner}/${repo}/git/refs/heads/${branch}`;
+    const startRef = await githubRequest(`/repos/${owner}/${repo}/git/ref/heads/${branch}`, 'GET', token);
+    const headSha = startRef.object.sha;
 
-        // 2. We need to find the commit chain from TARGET (sha) to HEAD
-        // Getting all commits is expensive, so we get last 50 and hope target is in there.
-        // If not, we fail safely.
-        const commits = await githubRequest(`/repos/${owner}/${repo}/commits?per_page=50&sha=${defaultBranch}`, 'GET', token);
+    // Pin the history to the HEAD we just read, not to the moving branch name.
+    const commits = await githubRequest(`/repos/${owner}/${repo}/commits?per_page=50&sha=${headSha}`, 'GET', token);
+    const plan = planCommitRewrite(commits, fixes);
+    if (!plan.ok) return { success: false, error: plan.error };
 
-        // Commits are returned HEAD -> OLDER.
-        // We need to find our target SHA index.
-        const targetIndex = commits.findIndex(c => c.sha.startsWith(sha) || c.sha === sha);
-
-        if (targetIndex === -1) {
-            return { success: false, error: 'Commit not found in recent history (last 50). Cannot rewrite older history safely.' };
-        }
-
-        // 3. Rebuild the chain
-        // We need to iterate from TARGET (oldest) -> HEAD (newest)
-        // commits[targetIndex] is our Target.
-        // commits[0] is HEAD.
-
-        let previousCommitSha = null;
-
-        // Handle the Target Commit first
-        const targetCommit = commits[targetIndex];
-        // const targetParentSha = targetCommit.parents.length > 0 ? targetCommit.parents[0].sha : null; 
-
-        // Create the new Target Commit
-        // POST /repos/:owner/:repo/git/commits
-        const newTargetCommitData = {
-            message: newMessage,
-            tree: targetCommit.commit.tree.sha,
-            parents: targetCommit.parents.map(p => p.sha)
-        };
-
-        const newTargetResponse = await githubRequest(`/repos/${owner}/${repo}/git/commits`, 'POST', token, newTargetCommitData);
-        previousCommitSha = newTargetResponse.sha;
-
-        // Now replay subsequent commits on top of this new one
-        // Loop from targetIndex - 1 (next newer) down to 0 (HEAD)
-        for (let i = targetIndex - 1; i >= 0; i--) {
-            const current = commits[i];
-            const newCommitData = {
-                message: current.commit.message,
-                tree: current.commit.tree.sha,
-                parents: [previousCommitSha] // Linearize history: point to the new previous commit
-            };
-
-            const response = await githubRequest(`/repos/${owner}/${repo}/git/commits`, 'POST', token, newCommitData);
-            previousCommitSha = response.sha;
-        }
-
-        // 4. Force Update the Ref
-        // PATCH /repos/:owner/:repo/git/refs/heads/:branch
-        const updateRefData = {
-            sha: previousCommitSha,
-            force: true
-        };
-
-        await githubRequest(`/repos/${owner}/${repo}/git/refs/heads/${defaultBranch}`, 'PATCH', token, updateRefData);
-
-        return { success: true };
-
-    } catch (e) {
-        console.error('Apply Fix Error:', e);
-        return { success: false, error: e.message };
+    let parents = plan.baseParents;
+    let newHead = null;
+    for (const step of plan.steps) {
+        const c = step.original.commit;
+        const created = await githubRequest(`/repos/${owner}/${repo}/git/commits`, 'POST', token, {
+            message: step.message,
+            tree: c.tree.sha,
+            parents,
+            author: { name: c.author.name, email: c.author.email, date: c.author.date },
+            committer: { name: c.committer.name, email: c.committer.email, date: c.committer.date }
+        });
+        newHead = created.sha;
+        parents = [newHead];
     }
-});
 
-// 27. BULK APPLY COMMIT FIXES (OPTIMIZED HISTORY REWRITE)
-ipcMain.handle('applyBulkCommitFixes', async (event, { token, repoFullName, fixes }) => {
-    try {
-        // fixes is array of { sha, newMessage }
-        if (!fixes || fixes.length === 0) return { success: true };
+    const stamp = new Date().toISOString().replace(/[-:]/g, '').replace('T', '-').slice(0, 15);
+    const backupBranch = `backup/${branch}-${stamp}`;
+    await githubRequest(`/repos/${owner}/${repo}/git/refs`, 'POST', token, {
+        ref: `refs/heads/${backupBranch}`,
+        sha: headSha
+    });
 
-        const [owner, repo] = repoFullName.split('/');
-
-        // 1. Get info to start
-        const defaultBranchData = await githubRequest(`/repos/${owner}/${repo}`, 'GET', token);
-        const defaultBranch = defaultBranchData.default_branch;
-
-        // 2. Get recent history (50)
-        const commits = await githubRequest(`/repos/${owner}/${repo}/commits?per_page=50&sha=${defaultBranch}`, 'GET', token);
-
-        // 3. Find the OLDEST commit in our fixes list to know where to start rebuilding
-        // We want to touch history as little as possible.
-        // Commits are HEAD(0) -> OLDER(N)
-
-        let deepestIndex = -1;
-
-        // Map fixes to a lookup object for speed: { sha: newMessage }
-        const fixMap = {};
-        for (const fix of fixes) {
-            fixMap[fix.sha] = fix.newMessage;
-            const index = commits.findIndex(c => c.sha.startsWith(fix.sha) || c.sha === fix.sha);
-            if (index > deepestIndex) {
-                deepestIndex = index;
-            }
-        }
-
-        if (deepestIndex === -1) {
-            return { success: false, error: 'None of the target commits were found in recent history (last 50).' };
-        }
-
-        // 4. Start rebuilding from data[deepestIndex] up to data[0]
-        let previousCommitSha = null;
-
-        // Initialize parent for the FIRST rebuilt commit (the oldest one we touch)
-        // If oldest touch is at index K, its parent is at index K+1 (if exists)
-        // If K is the last one fetched, we need its parent from 'parents' array.
-        const oldestTouch = commits[deepestIndex];
-        const initialParentSha = oldestTouch.parents.length > 0 ? oldestTouch.parents[0].sha : null;
-
-        // We will assign previousCommitSha iteratively.
-        // For the very first iteration, we pretend we just 'made' the parent.
-        previousCommitSha = initialParentSha;
-
-        // Iterate backwards from Oldest -> Newest (deepestIndex -> 0)
-        for (let i = deepestIndex; i >= 0; i--) {
-            const currentOriginal = commits[i];
-            const currentSha = currentOriginal.sha;
-
-            // Check if we have a new message for this specific commit
-            // Use short SHA matching if needed, though exact is better
-            let messageToUse = currentOriginal.commit.message;
-
-            // Check full SHA or short SHA match
-            if (fixMap[currentSha]) {
-                messageToUse = fixMap[currentSha];
-            } else {
-                // Try finding by prefix
-                const shortSha = currentSha.substring(0, 7);
-                const foundKey = Object.keys(fixMap).find(k => k.startsWith(shortSha) || maxShaMatch(k, currentSha));
-                if (foundKey) messageToUse = fixMap[foundKey];
-            }
-
-            const newCommitData = {
-                message: messageToUse,
-                tree: currentOriginal.commit.tree.sha,
-                parents: previousCommitSha ? [previousCommitSha] : []
-                // Note: If previousCommitSha is null (it's a root commit), pass empty array or null? 
-                // GitHub API expects array.
-            };
-
-            // Create this new commit
-            const response = await githubRequest(`/repos/${owner}/${repo}/git/commits`, 'POST', token, newCommitData);
-            previousCommitSha = response.sha;
-        }
-
-        // 5. Force Update Ref
-        const updateRefData = {
-            sha: previousCommitSha,
-            force: true
-        };
-
-        await githubRequest(`/repos/${owner}/${repo}/git/refs/heads/${defaultBranch}`, 'PATCH', token, updateRefData);
-
-        return { success: true };
-
-    } catch (e) {
-        console.error('Bulk Fix Error:', e);
-        return { success: false, error: e.message };
+    const currentRef = await githubRequest(`/repos/${owner}/${repo}/git/ref/heads/${branch}`, 'GET', token);
+    if (currentRef.object.sha !== headSha) {
+        try { await githubRequest(`/repos/${owner}/${repo}/git/refs/heads/${backupBranch}`, 'DELETE', token); } catch (e) {}
+        return { success: false, error: `Branch "${branch}" changed during the rewrite (new push detected). Nothing was changed; please retry.` };
     }
-});
 
-function maxShaMatch(a, b) {
-    return a.includes(b) || b.includes(a);
+    await githubRequest(refPath, 'PATCH', token, { sha: newHead, force: true });
+    return { success: true, backupBranch, rewritten: plan.steps.length };
 }
+
+async function handleCommitRewrite(token, repoFullName, fixes) {
+    try {
+        const result = await rewriteCommitMessages(token, repoFullName, fixes);
+        addToHistory({
+            type: 'commit-rewrite',
+            repoName: repoFullName,
+            status: result.success ? 'success' : 'error',
+            error: result.error || null,
+            message: result.success ? `${fixes.length} message(s) rewritten, backup: ${result.backupBranch}` : null,
+            timestamp: new Date().toISOString()
+        });
+        return result;
+    } catch (e) {
+        console.error('Commit rewrite error:', e.message);
+        addToHistory({ type: 'commit-rewrite', repoName: repoFullName, status: 'error', error: e.message, timestamp: new Date().toISOString() });
+        return { success: false, error: e.message };
+    }
+}
+
+ipcMain.handle('applyCommitFix', async (event, { token, repoFullName, sha, newMessage }) =>
+    handleCommitRewrite(token, repoFullName, [{ sha, newMessage }]));
+
+ipcMain.handle('applyBulkCommitFixes', async (event, { token, repoFullName, fixes }) => {
+    if (!fixes || fixes.length === 0) return { success: true };
+    return handleCommitRewrite(token, repoFullName, fixes);
+});
 
 // ─── Operation History ────────────────────────────────────────────────────────
 const historyFilePath = app.isPackaged ? path.join(app.getPath('userData'), 'operation-history.json') : path.join(__dirname, 'operation-history.json');
@@ -1758,6 +1695,259 @@ ipcMain.handle('selectFolders', async (event, { multiple }) => {
     });
 });
 
+// Recursively collect files above maxSize (async, skips .git/node_modules).
+async function findLargeFiles(root, maxSize) {
+    const found = [];
+    async function walk(dir, relative) {
+        let entries;
+        try { entries = await fs.promises.readdir(dir, { withFileTypes: true }); } catch (e) { return; }
+        for (const entry of entries) {
+            if (entry.name === '.git' || entry.name === 'node_modules') continue;
+            const fullPath = path.join(dir, entry.name);
+            const relPath = relative ? `${relative}/${entry.name}` : entry.name;
+            if (entry.isDirectory()) {
+                await walk(fullPath, relPath);
+            } else if (entry.isFile()) {
+                try {
+                    if ((await fs.promises.stat(fullPath)).size > maxSize) found.push(relPath);
+                } catch (e) {}
+            }
+        }
+    }
+    await walk(root, '');
+    return found;
+}
+
+async function gitOutput(args, cwd, opts) {
+    try { return (await runGit(args, cwd, opts)).trim(); } catch (e) { return ''; }
+}
+
+async function publishFolder(event, token, repo, result) {
+    const cwd = repo.folderPath;
+    const progress = (message) => event.sender.send('publish-progress', { repoName: repo.repoName, message, status: 'processing' });
+    const rollback = [];
+
+    if (!isValidRepoName(repo.repoName)) {
+        throw new Error(`Invalid repository name "${repo.repoName}". Use letters, digits, ".", "_" or "-" (max 100).`);
+    }
+    if (!cwd || !fs.existsSync(cwd) || !fs.statSync(cwd).isDirectory()) {
+        throw new Error('Project folder does not exist.');
+    }
+    const defaultBranch = isValidBranchName(repo.defaultBranch) ? repo.defaultBranch : 'main';
+
+    try {
+        progress('Creating GitHub repository…');
+
+        // 1. Create GitHub repo
+        let githubRepo;
+        try {
+            githubRepo = await githubRequest('/user/repos', 'POST', token, {
+                name: repo.repoName,
+                description: repo.description || '',
+                private: repo.visibility === 'private',
+                auto_init: false
+            });
+            result.steps.push({ step: 'GitHub repository created', status: 'success' });
+        } catch (e) {
+            if (e.message.includes('422') || e.message.toLowerCase().includes('already exists')) {
+                throw new Error(`Repository "${repo.repoName}" already exists on GitHub.`);
+            }
+            throw e;
+        }
+
+        // 2. Ensure we have user info for git config
+        if (!currentUser) {
+            currentUser = await githubRequest('/user', 'GET', token);
+        }
+
+        // 3. Git init if needed. An existing .git (history, branches, tags,
+        // stash, remotes) is NEVER deleted.
+        progress('Preparing local repository…');
+        if (fs.existsSync(path.join(cwd, '.git'))) {
+            const heavyHistory = await gitOutput(
+                ['log', '--all', '--diff-filter=A', '--name-only', '--format=', '--', 'node_modules/*', '*.exe'],
+                cwd, { timeout: 30000 }
+            );
+            if (heavyHistory) {
+                result.steps.push({
+                    step: 'Existing history contains node_modules/ or .exe files. History was kept intact; if the push is rejected for large files, clean the history manually (e.g. git filter-repo) and retry.',
+                    status: 'warning'
+                });
+            }
+            result.steps.push({ step: 'Git already initialised (existing history kept)', status: 'info' });
+        } else {
+            await runGit(['init', '-b', defaultBranch], cwd);
+            result.steps.push({ step: `Git initialised (branch: ${defaultBranch})`, status: 'success' });
+        }
+
+        // 4. Only set a local identity when none is configured (local or global).
+        if (!(await gitOutput(['config', '--get', 'user.email'], cwd))) {
+            const userEmail = currentUser.email || `${currentUser.login}@users.noreply.github.com`;
+            await runGit(['config', 'user.email', userEmail], cwd);
+        }
+        if (!(await gitOutput(['config', '--get', 'user.name'], cwd))) {
+            await runGit(['config', 'user.name', currentUser.name || currentUser.login], cwd);
+        }
+
+        // 4b. Auto-generate .gitignore (unless user opted out) to prevent large files like node_modules
+        if (repo.autoGitignore !== false) {
+            const detectedType = repo.detectedType || detectProjectType(cwd);
+            const gitignorePath = path.join(cwd, '.gitignore');
+            if (!fs.existsSync(gitignorePath)) {
+                fs.writeFileSync(gitignorePath, getGitignore(detectedType), 'utf-8');
+                progress('Generating .gitignore…');
+                result.steps.push({ step: `.gitignore created (${detectedType})`, status: 'success' });
+            } else {
+                const existing = fs.readFileSync(gitignorePath, 'utf-8');
+                if (!existing.includes('node_modules')) {
+                    fs.appendFileSync(gitignorePath, '\n# Auto-added\nnode_modules/\n');
+                    result.steps.push({ step: 'node_modules/ added to existing .gitignore', status: 'success' });
+                } else {
+                    result.steps.push({ step: '.gitignore already exists', status: 'info' });
+                }
+            }
+        }
+
+        // 4c. Remove ignored dirs from git index (even if freshly staged)
+        for (const dir of ['node_modules', '.next', '__pycache__', '.venv', 'venv', '.output', '.nuxt']) {
+            if (fs.existsSync(path.join(cwd, dir))) {
+                try {
+                    await runGit(['rm', '-r', '--cached', '--quiet', dir], cwd);
+                    result.steps.push({ step: `Removed ${dir}/ from git index`, status: 'success' });
+                } catch (e) { /* not in index, good */ }
+            }
+        }
+
+        // 4d. Scan for files > 100MB and auto-add to .gitignore
+        const largeFiles = await findLargeFiles(cwd, 100 * 1024 * 1024);
+        if (largeFiles.length > 0) {
+            const gitignorePath = path.join(cwd, '.gitignore');
+            const existing = fs.existsSync(gitignorePath) ? fs.readFileSync(gitignorePath, 'utf-8') : '';
+            const toAdd = largeFiles.filter(f => !existing.includes(f));
+            if (toAdd.length > 0) {
+                fs.appendFileSync(gitignorePath, '\n# Auto-excluded (>100MB)\n' + toAdd.join('\n') + '\n');
+                result.steps.push({ step: `Excluded ${toAdd.length} large file(s) (>100MB)`, status: 'success' });
+            }
+            for (const f of largeFiles) {
+                try { await runGit(['rm', '--cached', '--quiet', f], cwd); } catch (e) {}
+            }
+        }
+
+        // 5. Stage all files
+        progress('Staging files…');
+        await runGit(['add', '.'], cwd, { timeout: 120000 });
+        const stagedFiles = await gitOutput(['diff', '--cached', '--name-only'], cwd);
+        const stagedCount = stagedFiles ? stagedFiles.split('\n').length : 0;
+        result.steps.push({ step: `Files staged (${stagedCount} files)`, status: stagedCount > 0 ? 'success' : 'warning' });
+        event.sender.send('publish-progress', {
+            repoName: repo.repoName,
+            message: stagedCount > 0 ? `${stagedCount} file(s) staged` : 'No files staged! Check .gitignore',
+            status: stagedCount > 0 ? 'processing' : 'error'
+        });
+
+        // 6. Commit (if needed)
+        progress('Creating initial commit…');
+        const rawMsg = (repo.commitMessage || 'Initial commit').replace(/{{project_name}}/g, repo.repoName);
+        const hasCommits = !!(await gitOutput(['rev-parse', '--verify', '--quiet', 'HEAD'], cwd));
+        const hasChanges = !!(await gitOutput(['status', '--porcelain'], cwd));
+        if (hasChanges) {
+            await runGit(['commit', '-m', rawMsg], cwd, { timeout: 120000 });
+            result.steps.push({ step: `${hasCommits ? 'New changes committed' : 'Commit created'}: "${rawMsg}"`, status: 'success' });
+        } else if (!hasCommits) {
+            await runGit(['commit', '--allow-empty', '-m', rawMsg], cwd);
+            result.steps.push({ step: 'Empty initial commit created', status: 'info' });
+        } else {
+            result.steps.push({ step: 'Using existing commits (no new changes)', status: 'info' });
+        }
+
+        // 7. Point origin at the new repo; the previous origin is restored on failure.
+        progress('Adding remote origin…');
+        const cloneUrl = githubRepo.clone_url;
+        const oldOrigin = await gitOutput(['remote', 'get-url', 'origin'], cwd);
+        if (oldOrigin) {
+            await runGit(['remote', 'set-url', 'origin', cloneUrl], cwd);
+            rollback.push(() => runGit(['remote', 'set-url', 'origin', oldOrigin], cwd));
+            // A separate push URL would still send the push to the old remote.
+            const oldPushUrls = (await gitOutput(['config', '--get-all', 'remote.origin.pushurl'], cwd)).split('\n').filter(Boolean);
+            if (oldPushUrls.length > 0) {
+                await runGit(['config', '--unset-all', 'remote.origin.pushurl'], cwd);
+                rollback.push(async () => {
+                    for (const u of oldPushUrls) await runGit(['config', '--add', 'remote.origin.pushurl', u], cwd);
+                });
+            }
+            result.steps.push({ step: `Remote origin replaced (previous: ${stripUrlCredentials(oldOrigin)})`, status: 'info' });
+        } else {
+            await runGit(['remote', 'add', 'origin', cloneUrl], cwd);
+            rollback.push(() => runGit(['remote', 'remove', 'origin'], cwd));
+            result.steps.push({ step: 'Remote origin added', status: 'success' });
+        }
+
+        // 8. Push. The token is passed via env (http.extraheader), never in argv or .git/config.
+        progress('Pushing to GitHub…');
+        const branchName = (await gitOutput(['branch', '--show-current'], cwd)) || defaultBranch;
+        const authEnv = gitAuthEnv(token);
+        try {
+            await runGit(['push', '-u', 'origin', `refs/heads/${branchName}:refs/heads/${branchName}`], cwd,
+                { timeout: 300000, env: authEnv, secrets: [token] });
+        } catch (pushErr) {
+            throw new Error(`Push failed: ${pushErr.message}`);
+        }
+        rollback.length = 0; // remote now matches; keep the new origin
+        result.steps.push({ step: `Pushed to GitHub (${branchName})`, status: 'success' });
+
+        // 9. Optional AI README (opt-in in Settings). The remote commit is pulled
+        // back so the local branch does not diverge from GitHub.
+        if (repo.autoReadme === true && repo.routerKey) {
+            try {
+                progress('Generating AI README…');
+                const [owner, repoN] = githubRepo.full_name.split('/');
+                let hasReadme = false;
+                try {
+                    await githubRequest(`/repos/${owner}/${repoN}/contents/README.md`, 'GET', token);
+                    hasReadme = true;
+                } catch (e) {}
+
+                if (hasReadme) {
+                    result.steps.push({ step: 'README already exists, skipped', status: 'info' });
+                } else {
+                    const files = await getRepoFiles(token, owner, repoN);
+                    const readme = files.length > 0 ? await openRouterReadmeRequest(repo.routerKey, repo.repoName, files) : null;
+                    if (readme) {
+                        await githubRequest(`/repos/${owner}/${repoN}/contents/README.md`, 'PUT', token, {
+                            message: 'Create README.md via AI',
+                            content: Buffer.from(readme).toString('base64'),
+                            branch: branchName
+                        });
+                        result.steps.push({ step: 'AI README created', status: 'success' });
+                        try {
+                            await runGit(['pull', '--ff-only', 'origin', branchName], cwd,
+                                { timeout: 120000, env: authEnv, secrets: [token] });
+                            result.steps.push({ step: 'Local branch updated with README commit', status: 'success' });
+                        } catch (e) {
+                            result.steps.push({ step: `Could not pull README commit. Run "git pull" before your next push (${e.message})`, status: 'warning' });
+                        }
+                    } else {
+                        result.steps.push({ step: 'AI README: generation failed, skipped', status: 'info' });
+                    }
+                }
+            } catch (readmeErr) {
+                result.steps.push({ step: `AI README failed: ${redactSecrets(readmeErr.message, [token])}`, status: 'info' });
+            }
+        }
+
+        result.status = 'success';
+        result.repoUrl = githubRepo.html_url;
+    } catch (e) {
+        if (rollback.length > 0) {
+            for (const undo of rollback.reverse()) {
+                try { await undo(); } catch (undoErr) { console.error('[publish] rollback failed:', undoErr.message); }
+            }
+            result.steps.push({ step: 'Previous remote configuration restored', status: 'info' });
+        }
+        throw e;
+    }
+}
+
 // 29. Create GitHub repos and push local folders
 ipcMain.handle('createAndPushRepos', async (event, { token, repos }) => {
     const results = [];
@@ -1772,332 +1962,18 @@ ipcMain.handle('createAndPushRepos', async (event, { token, repos }) => {
             repoUrl: null
         };
 
+        const key = repo.folderPath ? folderKey(repo.folderPath) : '';
+        const locked = busyFolders.has(key);
         try {
-            event.sender.send('publish-progress', {
-                repoName: repo.repoName,
-                message: 'Creating GitHub repository…',
-                status: 'processing'
-            });
-
-            // 1. Create GitHub repo
-            let githubRepo;
-            try {
-                githubRepo = await githubRequest('/user/repos', 'POST', token, {
-                    name: repo.repoName,
-                    description: repo.description || '',
-                    private: repo.visibility === 'private',
-                    auto_init: false
-                });
-                result.steps.push({ step: 'GitHub repository created', status: 'success' });
-            } catch (e) {
-                if (e.message.includes('422') || e.message.toLowerCase().includes('already exists')) {
-                    throw new Error(`Repository "${repo.repoName}" already exists on GitHub.`);
-                }
-                throw e;
-            }
-
-            // 2. Ensure we have user info for git config
-            if (!currentUser) {
-                currentUser = await githubRequest('/user', 'GET', token);
-            }
-
-            // 3. Git init if needed
-            event.sender.send('publish-progress', {
-                repoName: repo.repoName,
-                message: 'Preparing local repository…',
-                status: 'processing'
-            });
-
-            const gitDir = path.join(repo.folderPath, '.git');
-            if (fs.existsSync(gitDir)) {
-                // Check if large/ignored files are baked into git history
-                let trackedLarge = '';
-                try {
-                    trackedLarge = execSync(
-                        'git log --all --diff-filter=A --name-only --format="" -- "node_modules/*" "*.exe"',
-                        { cwd: repo.folderPath, stdio: ['pipe','pipe','pipe'], timeout: 10000 }
-                    ).toString().trim();
-                } catch (e) {
-                    // Probe failed (corrupt git? weird state?) — NEVER destroy user
-                    // history because of a failed check; proceed with existing .git.
-                    console.warn(`[createAndPushRepos] Dirty-history probe failed, keeping existing .git:`, e.message);
-                    result.steps.push({ step: 'History check skipped (probe failed)', status: 'info' });
-                }
-                if (trackedLarge.length > 0) {
-                    // Large files in history — nuke .git and start fresh
-                    fs.rmSync(gitDir, { recursive: true, force: true });
-                    console.log(`[createAndPushRepos] Removed dirty .git history (had large files in commits)`);
-                    result.steps.push({ step: 'Cleaned dirty git history (large files detected)', status: 'success' });
-                }
-            }
-            if (!fs.existsSync(gitDir)) {
-                execSync('git init', { cwd: repo.folderPath, stdio: 'pipe' });
-                try {
-                    execSync('git checkout -b main', { cwd: repo.folderPath, stdio: 'pipe' });
-                } catch (e) { /* branch may already exist */ }
-                result.steps.push({ step: 'Git initialised (clean)', status: 'success' });
-            } else {
-                result.steps.push({ step: 'Git already initialised', status: 'info' });
-            }
-
-            // 4. Set local git user config
-            const userEmail = currentUser.email || `${currentUser.login}@users.noreply.github.com`;
-            const userName = currentUser.name || currentUser.login;
-            execFileSync('git', ['config', 'user.email', userEmail], { cwd: repo.folderPath, stdio: 'pipe' });
-            execFileSync('git', ['config', 'user.name', userName], { cwd: repo.folderPath, stdio: 'pipe' });
-
-            // 4b. Auto-generate .gitignore (unless user opted out) to prevent large files like node_modules
-            if (repo.autoGitignore !== false) {
-                const detectedType = repo.detectedType || detectProjectType(repo.folderPath);
-                const gitignorePath = path.join(repo.folderPath, '.gitignore');
-                const content = getGitignore(detectedType);
-                if (!fs.existsSync(gitignorePath)) {
-                    fs.writeFileSync(gitignorePath, content, 'utf-8');
-                    event.sender.send('publish-progress', {
-                        repoName: repo.repoName,
-                        message: 'Generating .gitignore…',
-                        status: 'processing'
-                    });
-                    result.steps.push({ step: `.gitignore created (${detectedType})`, status: 'success' });
-                } else {
-                    // Ensure node_modules is in existing .gitignore
-                    const existing = fs.readFileSync(gitignorePath, 'utf-8');
-                    if (!existing.includes('node_modules')) {
-                        fs.appendFileSync(gitignorePath, '\n# Auto-added\nnode_modules/\n');
-                        result.steps.push({ step: 'node_modules/ added to existing .gitignore', status: 'success' });
-                    } else {
-                        result.steps.push({ step: '.gitignore already exists', status: 'info' });
-                    }
-                }
-            }
-
-            // 4c. Remove ignored dirs from git index (even if freshly staged)
-            {
-                const ignoredDirs = ['node_modules', '.next', '__pycache__', '.venv', 'venv', '.output', '.nuxt'];
-                for (const dir of ignoredDirs) {
-                    const dirPath = path.join(repo.folderPath, dir);
-                    if (fs.existsSync(dirPath)) {
-                        try {
-                            execFileSync('git', ['rm', '-r', '--cached', dir], { cwd: repo.folderPath, stdio: 'pipe' });
-                            console.log(`[createAndPushRepos] Removed ${dir} from git index`);
-                            result.steps.push({ step: `Removed ${dir}/ from git index`, status: 'success' });
-                        } catch (e) {
-                            // Not in index — good
-                        }
-                    }
-                }
-            }
-
-            // 4d. Scan for files > 100MB and auto-add to .gitignore
-            {
-                const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
-                const gitignorePath = path.join(repo.folderPath, '.gitignore');
-                const largeFiles = [];
-
-                function scanForLargeFiles(dir, relative) {
-                    try {
-                        const entries = fs.readdirSync(dir, { withFileTypes: true });
-                        for (const entry of entries) {
-                            const fullPath = path.join(dir, entry.name);
-                            const relPath = relative ? `${relative}/${entry.name}` : entry.name;
-                            if (entry.name === '.git' || entry.name === 'node_modules') continue;
-                            if (entry.isDirectory()) {
-                                scanForLargeFiles(fullPath, relPath);
-                            } else if (entry.isFile()) {
-                                try {
-                                    const stat = fs.statSync(fullPath);
-                                    if (stat.size > MAX_FILE_SIZE) {
-                                        largeFiles.push(relPath);
-                                    }
-                                } catch (e) {}
-                            }
-                        }
-                    } catch (e) {}
-                }
-                scanForLargeFiles(repo.folderPath, '');
-
-                if (largeFiles.length > 0) {
-                    const existing = fs.existsSync(gitignorePath) ? fs.readFileSync(gitignorePath, 'utf-8') : '';
-                    const toAdd = largeFiles.filter(f => !existing.includes(f));
-                    if (toAdd.length > 0) {
-                        fs.appendFileSync(gitignorePath, '\n# Auto-excluded (>100MB)\n' + toAdd.join('\n') + '\n');
-                        console.log(`[createAndPushRepos] Auto-excluded large files: ${toAdd.join(', ')}`);
-                        result.steps.push({ step: `Excluded ${toAdd.length} large file(s) (>100MB)`, status: 'success' });
-                    }
-                    // Also remove from index if tracked
-                    for (const f of largeFiles) {
-                        try {
-                            execFileSync('git', ['rm', '--cached', f], { cwd: repo.folderPath, stdio: 'pipe' });
-                        } catch (e) {}
-                    }
-                }
-            }
-
-            // 5. Stage all files
-            event.sender.send('publish-progress', {
-                repoName: repo.repoName,
-                message: 'Staging files…',
-                status: 'processing'
-            });
-            execSync('git add .', { cwd: repo.folderPath, stdio: 'pipe' });
-            // Check how many files were staged
-            const stagedFiles = execSync('git diff --cached --name-only', { cwd: repo.folderPath }).toString().trim();
-            const stagedCount = stagedFiles ? stagedFiles.split('\n').length : 0;
-            console.log(`[createAndPushRepos] Staged ${stagedCount} file(s) in ${repo.folderPath}`);
-            if (stagedCount > 0) {
-                console.log(`[createAndPushRepos] Files: ${stagedFiles.split('\n').slice(0, 10).join(', ')}${stagedCount > 10 ? '...' : ''}`);
-            } else {
-                // List what's in the folder to understand why nothing staged
-                const dirContents = fs.readdirSync(repo.folderPath).filter(f => f !== '.git');
-                console.log(`[createAndPushRepos] WARNING: 0 files staged! Folder contents: ${dirContents.join(', ') || '(empty)'}`);
-                if (fs.existsSync(path.join(repo.folderPath, '.gitignore'))) {
-                    const gi = fs.readFileSync(path.join(repo.folderPath, '.gitignore'), 'utf8');
-                    console.log(`[createAndPushRepos] .gitignore contents:\n${gi}`);
-                }
-            }
-            result.steps.push({ step: `Files staged (${stagedCount} files)`, status: stagedCount > 0 ? 'success' : 'warning' });
-            event.sender.send('publish-progress', {
-                repoName: repo.repoName,
-                message: stagedCount > 0 ? `${stagedCount} file(s) staged` : '⚠️ No files staged! Check .gitignore',
-                status: stagedCount > 0 ? 'processing' : 'error'
-            });
-
-            // 6. Commit (if needed)
-            event.sender.send('publish-progress', {
-                repoName: repo.repoName,
-                message: 'Creating initial commit…',
-                status: 'processing'
-            });
-
-            // Build commit message — use execFileSync with array args to avoid shell injection
-            const rawMsg = (repo.commitMessage || 'Initial commit').replace(/{{project_name}}/g, repo.repoName);
-
-            let hasCommits = false;
-            try {
-                execSync('git log --oneline -1', { cwd: repo.folderPath, stdio: 'pipe' });
-                hasCommits = true;
-            } catch (e) {}
-
-            if (!hasCommits) {
-                const statusOut = execSync('git status --porcelain', { cwd: repo.folderPath }).toString().trim();
-                if (statusOut.length > 0) {
-                    execFileSync('git', ['commit', '-m', rawMsg], { cwd: repo.folderPath, stdio: 'pipe' });
-                    result.steps.push({ step: `Commit created: "${rawMsg}"`, status: 'success' });
-                } else {
-                    execFileSync('git', ['commit', '--allow-empty', '-m', rawMsg], { cwd: repo.folderPath, stdio: 'pipe' });
-                    result.steps.push({ step: 'Empty initial commit created', status: 'info' });
-                }
-            } else {
-                // Even with existing commits, commit any new staged changes
-                const statusOut2 = execSync('git status --porcelain', { cwd: repo.folderPath }).toString().trim();
-                if (statusOut2.length > 0) {
-                    execFileSync('git', ['commit', '-m', rawMsg], { cwd: repo.folderPath, stdio: 'pipe' });
-                    result.steps.push({ step: `New changes committed: "${rawMsg}"`, status: 'success' });
-                } else {
-                    result.steps.push({ step: 'Using existing commits (no new changes)', status: 'info' });
-                }
-            }
-
-            // 7. Add remote
-            event.sender.send('publish-progress', {
-                repoName: repo.repoName,
-                message: 'Adding remote origin…',
-                status: 'processing'
-            });
-            try {
-                execSync('git remote remove origin', { cwd: repo.folderPath, stdio: 'pipe' });
-            } catch (e) {}
-            const cloneUrl = githubRepo.clone_url;
-            execFileSync('git', ['remote', 'add', 'origin', cloneUrl], { cwd: repo.folderPath, stdio: 'pipe' });
-            result.steps.push({ step: 'Remote origin added', status: 'success' });
-
-            // 8. Push
-            event.sender.send('publish-progress', {
-                repoName: repo.repoName,
-                message: 'Pushing to GitHub…',
-                status: 'processing'
-            });
-
-            let branchName = 'main';
-            try {
-                branchName = execSync('git branch --show-current', { cwd: repo.folderPath }).toString().trim() || 'main';
-            } catch (e) {}
-
-            // Push via a one-shot authenticated URL argument instead of writing
-            // the token into .git/config with `remote set-url`. The token only
-            // lives in the child process argv for the duration of the push.
-            const pushUrl = cloneUrl.replace('https://', `https://${token}@`);
-            try {
-                const pushOutput = execFileSync(
-                    'git',
-                    ['push', pushUrl, `refs/heads/${branchName}:refs/heads/${branchName}`],
-                    {
-                        cwd: repo.folderPath,
-                        timeout: 120000,
-                        encoding: 'utf8',
-                        env: { ...process.env, GIT_TERMINAL_PROMPT: '0', GCM_INTERACTIVE: 'Never' }
-                    }
-                );
-                console.log(`[createAndPushRepos] Push output: ${pushOutput}`);
-            } catch (pushErr) {
-                const errMsg = pushErr.stderr || pushErr.stdout || pushErr.message;
-                console.error(`[createAndPushRepos] Push FAILED:`, errMsg);
-                throw new Error(`Push failed: ${errMsg}`);
-            }
-
-            result.steps.push({ step: 'Pushed to GitHub', status: 'success' });
-
-            // 9. Auto-generate AI README if routerKey is available
-            if (repo.autoReadme !== false) {
-                try {
-                    const routerKey = repo.routerKey || '';
-                    if (routerKey) {
-                        event.sender.send('publish-progress', {
-                            repoName: repo.repoName,
-                            message: 'Generating AI README…',
-                            status: 'processing'
-                        });
-
-                        const fullName = githubRepo.full_name;
-                        const [owner, repoN] = fullName.split('/');
-
-                        // Check if README already exists
-                        let hasReadme = false;
-                        try {
-                            await githubRequest(`/repos/${owner}/${repoN}/contents/README.md`, 'GET', token);
-                            hasReadme = true;
-                        } catch (e) {}
-
-                        if (!hasReadme) {
-                            const files = await getRepoFiles(token, owner, repoN);
-                            if (files.length > 0) {
-                                const readme = await openRouterReadmeRequest(routerKey, repo.repoName, files);
-                                if (readme) {
-                                    await githubRequest(`/repos/${owner}/${repoN}/contents/README.md`, 'PUT', token, {
-                                        message: 'Create README.md via AI',
-                                        content: Buffer.from(readme).toString('base64')
-                                    });
-                                    result.steps.push({ step: 'AI README created', status: 'success' });
-                                } else {
-                                    result.steps.push({ step: 'AI README: generation failed, skipped', status: 'info' });
-                                }
-                            }
-                        } else {
-                            result.steps.push({ step: 'README already exists, skipped', status: 'info' });
-                        }
-                    }
-                } catch (readmeErr) {
-                    result.steps.push({ step: `AI README failed: ${readmeErr.message}`, status: 'info' });
-                }
-            }
-
-            result.status = 'success';
-            result.repoUrl = githubRepo.html_url;
-
+            if (locked) throw new Error('Another git operation is already running for this folder.');
+            busyFolders.add(key);
+            await publishFolder(event, token, repo, result);
         } catch (e) {
             result.status = 'error';
-            result.error = e.message;
-            result.steps.push({ step: `Error: ${e.message}`, status: 'error' });
+            result.error = redactSecrets(e.message, [token]);
+            result.steps.push({ step: `Error: ${result.error}`, status: 'error' });
+        } finally {
+            if (!locked) busyFolders.delete(key);
         }
 
         results.push(result);
@@ -2263,32 +2139,26 @@ ipcMain.handle('syncForkBulk', async (event, { token, repos }) => {
 // ─── Local Git Status Check ───────────────────────────────────────────────────
 ipcMain.handle('checkLocalGitStatus', async (event, { folderPath }) => {
     try {
-        if (!fs.existsSync(path.join(folderPath, '.git'))) {
+        if (!folderPath || !fs.existsSync(path.join(folderPath, '.git'))) {
             return { success: false, error: 'Not a git repository' };
         }
 
         // Check for uncommitted changes
-        const statusOut = execSync('git status --porcelain', { cwd: folderPath, timeout: 10000 }).toString().trim();
+        const statusOut = (await runGit(['status', '--porcelain'], folderPath, { timeout: 10000 })).trim();
         const uncommitted = statusOut.length > 0 ? statusOut.split('\n').length : 0;
 
         // Check for unpushed commits
         let unpushed = 0;
         try {
-            const logOut = execSync('git log --oneline @{u}..HEAD', { cwd: folderPath, timeout: 10000 }).toString().trim();
+            const logOut = (await runGit(['log', '--oneline', '@{u}..HEAD'], folderPath, { timeout: 10000 })).trim();
             unpushed = logOut.length > 0 ? logOut.split('\n').length : 0;
         } catch (e) {
             // No upstream set
-            try {
-                const logAll = execSync('git log --oneline', { cwd: folderPath, timeout: 10000 }).toString().trim();
-                if (logAll.length > 0) unpushed = -1; // -1 means no remote tracking
-            } catch (e2) {}
+            const logAll = await gitOutput(['log', '--oneline', '-1'], folderPath, { timeout: 10000 });
+            if (logAll.length > 0) unpushed = -1; // -1 means no remote tracking
         }
 
-        // Get current branch
-        let branch = 'main';
-        try {
-            branch = execSync('git branch --show-current', { cwd: folderPath, timeout: 5000 }).toString().trim() || 'main';
-        } catch (e) {}
+        const branch = (await gitOutput(['branch', '--show-current'], folderPath, { timeout: 5000 })) || 'main';
 
         return {
             success: true,
@@ -2302,73 +2172,67 @@ ipcMain.handle('checkLocalGitStatus', async (event, { folderPath }) => {
     }
 });
 
+async function quickPushFolder(cwd, token, commitMessage) {
+    // Validate the push target BEFORE touching anything: the GitHub token is
+    // only ever sent to https://github.com.
+    const remoteUrl = await gitOutput(['remote', 'get-url', 'origin'], cwd, { timeout: 5000 });
+    if (!remoteUrl) return { success: false, error: 'No remote origin set' };
+    const cleanUrl = stripUrlCredentials(remoteUrl);
+    if (!isGithubHttpsUrl(cleanUrl)) {
+        return { success: false, error: `Origin is not an https://github.com URL (${cleanUrl}). Quick Push only sends your GitHub token to github.com.` };
+    }
+    // Sanitize any credentials an older version may have baked into .git/config
+    if (cleanUrl !== remoteUrl) {
+        await runGit(['remote', 'set-url', 'origin', cleanUrl], cwd);
+    }
+
+    // Ensure .gitignore exists to prevent pushing large files
+    const qpGitignorePath = path.join(cwd, '.gitignore');
+    if (!fs.existsSync(qpGitignorePath)) {
+        fs.writeFileSync(qpGitignorePath, getGitignore(detectProjectType(cwd)), 'utf-8');
+    } else {
+        const qpExisting = fs.readFileSync(qpGitignorePath, 'utf-8');
+        if (!qpExisting.includes('node_modules') && fs.existsSync(path.join(cwd, 'node_modules'))) {
+            fs.appendFileSync(qpGitignorePath, '\n# Auto-added\nnode_modules/\n');
+        }
+    }
+
+    // Remove ignored dirs from git index
+    for (const dir of ['node_modules', '.next', '__pycache__', '.venv', 'venv']) {
+        if (fs.existsSync(path.join(cwd, dir))) {
+            try { await runGit(['rm', '-r', '--cached', '--quiet', dir], cwd); } catch (e) {}
+        }
+    }
+
+    // Stage & commit if there are changes
+    const statusOut = await gitOutput(['status', '--porcelain'], cwd, { timeout: 10000 });
+    if (statusOut.length > 0) {
+        await runGit(['add', '.'], cwd, { timeout: 120000 });
+        await runGit(['commit', '-m', commitMessage || 'Update changes'], cwd, { timeout: 120000 });
+    }
+
+    const branch = (await gitOutput(['branch', '--show-current'], cwd, { timeout: 5000 })) || 'main';
+
+    // Token goes through env (http.extraheader), never argv or .git/config.
+    await runGit(['push', '-u', 'origin', `refs/heads/${branch}:refs/heads/${branch}`], cwd,
+        { timeout: 300000, env: gitAuthEnv(token), secrets: [token] });
+
+    return { success: true, message: 'Pushed successfully!' };
+}
+
 ipcMain.handle('quickPush', async (event, { folderPath, token, commitMessage }) => {
+    if (!folderPath || !fs.existsSync(path.join(folderPath, '.git'))) {
+        return { success: false, error: 'Not a git repository' };
+    }
+    const key = folderKey(folderPath);
+    if (busyFolders.has(key)) return { success: false, error: 'Another git operation is already running for this folder.' };
+    busyFolders.add(key);
     try {
-        const cwd = folderPath;
-
-        // Ensure .gitignore exists to prevent pushing large files
-        const qpGitignorePath = path.join(cwd, '.gitignore');
-        if (!fs.existsSync(qpGitignorePath)) {
-            const qpType = detectProjectType(cwd);
-            const qpContent = getGitignore(qpType);
-            fs.writeFileSync(qpGitignorePath, qpContent, 'utf-8');
-        } else {
-            const qpExisting = fs.readFileSync(qpGitignorePath, 'utf-8');
-            if (!qpExisting.includes('node_modules') && fs.existsSync(path.join(cwd, 'node_modules'))) {
-                fs.appendFileSync(qpGitignorePath, '\n# Auto-added\nnode_modules/\n');
-            }
-        }
-
-        // Remove ignored dirs from git index
-        const qpIgnoredDirs = ['node_modules', '.next', '__pycache__', '.venv', 'venv'];
-        for (const dir of qpIgnoredDirs) {
-            if (fs.existsSync(path.join(cwd, dir))) {
-                try { execFileSync('git', ['rm', '-r', '--cached', dir], { cwd, stdio: 'pipe' }); } catch (e) {}
-            }
-        }
-
-        // Stage & commit if there are changes
-        const statusOut = execSync('git status --porcelain', { cwd, timeout: 10000 }).toString().trim();
-        if (statusOut.length > 0) {
-            execSync('git add .', { cwd, stdio: 'pipe' });
-            execFileSync('git', ['commit', '-m', commitMessage || 'Update changes'], { cwd, stdio: 'pipe' });
-        }
-
-        // Get remote URL and push
-        let remoteUrl = '';
-        try {
-            remoteUrl = execSync('git remote get-url origin', { cwd, timeout: 5000 }).toString().trim();
-        } catch (e) {
-            return { success: false, error: 'No remote origin set' };
-        }
-
-        // Sanitize any credentials an older version may have baked into .git/config
-        const cleanUrl = remoteUrl.replace(/^https:\/\/[^@/]+@/, 'https://');
-        if (cleanUrl !== remoteUrl) {
-            try {
-                execFileSync('git', ['remote', 'set-url', 'origin', cleanUrl], { cwd, stdio: 'pipe' });
-                console.log('[quickPush] Stripped leaked credentials from origin URL');
-            } catch (e) {}
-            remoteUrl = cleanUrl;
-        }
-
-        const branch = execSync('git branch --show-current', { cwd, timeout: 5000 }).toString().trim() || 'main';
-
-        // Auth push via one-shot URL argument — the token never touches .git/config
-        const pushUrl = remoteUrl.replace('https://', `https://${token}@`);
-        execFileSync(
-            'git',
-            ['push', pushUrl, `refs/heads/${branch}:refs/heads/${branch}`],
-            {
-                cwd,
-                timeout: 120000,
-                env: { ...process.env, GIT_TERMINAL_PROMPT: '0', GCM_INTERACTIVE: 'Never' }
-            }
-        );
-
-        return { success: true, message: 'Pushed successfully!' };
+        return await quickPushFolder(folderPath, token, commitMessage);
     } catch (e) {
-        return { success: false, error: e.message };
+        return { success: false, error: redactSecrets(e.message, [token]) };
+    } finally {
+        busyFolders.delete(key);
     }
 });
 
@@ -2408,6 +2272,8 @@ ipcMain.handle('selectClonePath', async () => {
 ipcMain.handle('cloneRepo', async (event, { cloneUrl, clonePath, repoName }) => {
     try {
         if (!clonePath) return { success: false, error: 'Clone path not set. Please set it in Settings.' };
+        if (!isValidRepoName(repoName)) return { success: false, error: `Invalid repository name: ${repoName}` };
+        if (!isGithubHttpsUrl(cloneUrl)) return { success: false, error: 'Only https://github.com clone URLs are supported.' };
         if (!fs.existsSync(clonePath)) {
             fs.mkdirSync(clonePath, { recursive: true });
         }
@@ -2416,14 +2282,23 @@ ipcMain.handle('cloneRepo', async (event, { cloneUrl, clonePath, repoName }) => 
             return { success: false, error: `Directory already exists: ${repoName}` };
         }
         return new Promise((resolve) => {
-            const proc = spawn('git', ['clone', cloneUrl, dest], { stdio: ['ignore', 'pipe', 'pipe'] });
+            const proc = spawn('git', ['clone', '--', cloneUrl, dest], {
+                stdio: ['ignore', 'pipe', 'pipe'],
+                windowsHide: true,
+                env: { ...process.env, GIT_TERMINAL_PROMPT: '0', GCM_INTERACTIVE: 'Never' }
+            });
             let stderr = '';
-            proc.stderr.on('data', (d) => { stderr += d.toString(); });
+            let timedOut = false;
+            const timer = setTimeout(() => { timedOut = true; proc.kill(); }, CLONE_TIMEOUT_MS);
+            proc.stderr.on('data', (d) => { if (stderr.length < 64 * 1024) stderr += d.toString(); });
             proc.on('close', (code) => {
-                if (code === 0) resolve({ success: true, path: dest });
+                clearTimeout(timer);
+                if (timedOut) resolve({ success: false, error: `git clone timed out (${CLONE_TIMEOUT_MS / 60000} min)` });
+                else if (code === 0) resolve({ success: true, path: dest });
                 else resolve({ success: false, error: stderr || `git clone exited with code ${code}` });
             });
             proc.on('error', (err) => {
+                clearTimeout(timer);
                 resolve({ success: false, error: err.message });
             });
         });
