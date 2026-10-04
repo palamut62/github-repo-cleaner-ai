@@ -59,7 +59,7 @@
       }
     ],
     "win": {
-      "icon": "assets/icon.png",
+      "icon": "assets/icon.ico",
       "requestedExecutionLevel": "asInvoker",
       "target": [
         {
