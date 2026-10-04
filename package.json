@@ -5,9 +5,9 @@
   "scripts": {
     "start": "electron .",
     "test": "node --test",
-    "build": "electron-builder --win",
-    "build:linux": "electron-builder --linux AppImage deb",
-    "build:portable": "electron-builder --win portable",
+    "build": "electron-builder --win --publish never",
+    "build:linux": "electron-builder --linux AppImage deb --publish never",
+    "build:portable": "electron-builder --win portable --publish never",
     "icons": "node generate-icons.js"
   },
   "devDependencies": {
@@ -33,6 +33,14 @@
     "directories": {
       "output": "dist"
     },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "palamut62",
+        "repo": "github-repo-cleaner-ai",
+        "releaseType": "release"
+      }
+    ],
     "files": [
       "main.js",
       "preload.js",
@@ -72,6 +80,7 @@
       "maintainer": "Umut Çelik (palamut62) <palamut62@users.noreply.github.com>"
     },
     "nsis": {
+      "artifactName": "GitHub-Repo-Organizer-Setup-${version}.${ext}",
       "oneClick": false,
       "perMachine": true,
       "allowToChangeInstallationDirectory": true,
@@ -83,5 +92,8 @@
       "runAfterFinish": true,
       "license": "LICENSE"
     }
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9"
   }
 }

@@ -88,6 +88,16 @@ contextBridge.exposeInMainWorld('api', {
     setAutoStart: (enabled) => ipcRenderer.invoke('setAutoStart', enabled),
     getAppVersion: () => ipcRenderer.invoke('getAppVersion'),
 
+    // Auto update
+    getUpdateStatus: () => ipcRenderer.invoke('update:getStatus'),
+    checkForUpdates: () => ipcRenderer.invoke('update:check'),
+    downloadUpdate: () => ipcRenderer.invoke('update:download'),
+    installUpdate: () => ipcRenderer.invoke('update:install'),
+    onUpdateStatus: (callback) => {
+        ipcRenderer.removeAllListeners('update:status');
+        ipcRenderer.on('update:status', (_event, status) => callback(status));
+    },
+
     // GitHub Explore
     searchRepos: (data) => ipcRenderer.invoke('searchRepos', data),
     starRepo: (data) => ipcRenderer.invoke('starRepo', data),

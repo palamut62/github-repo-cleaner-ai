@@ -24,7 +24,8 @@ MSG="${2:?Usage: ./release.sh <version> \"<commit message>\"}"
 
 APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WEB_DIR="${WEB_DIR:-$APP_DIR/../github-repo-cleaner-ai_web_page}"
-EXE="dist/GitHub Repo Organizer Setup ${VERSION}.exe"
+# No spaces: GitHub would rename them to dots and break latest.yml (auto update).
+EXE="dist/GitHub-Repo-Organizer-Setup-${VERSION}.exe"
 
 cd "$APP_DIR"
 

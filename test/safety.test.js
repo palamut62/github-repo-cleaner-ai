@@ -183,3 +183,15 @@ test('F03: recent operations escape repoName', () => {
 test('no native alert/confirm/prompt in the renderer', () => {
     assert.ok(!/(?<![\w.])(alert|confirm|prompt)\s*\(/.test(htmlSrc.replace(/showConfirm\(/g, '')));
 });
+
+test('auto update: installer name has no spaces so latest.yml matches the uploaded asset', () => {
+    const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'));
+    const artifact = pkg.build.nsis.artifactName;
+    assert.ok(artifact && !/\s/.test(artifact), 'nsis.artifactName must not contain spaces');
+    assert.ok(pkg.build.publish.some(p => p.provider === 'github' && p.repo === 'github-repo-cleaner-ai'));
+    assert.ok(pkg.dependencies && pkg.dependencies['electron-updater'], 'electron-updater must be a runtime dependency');
+    const release = fs.readFileSync(path.join(__dirname, '..', 'release.sh'), 'utf8');
+    const expected = artifact.replace('${version}', '${VERSION}').replace('${ext}', 'exe');
+    assert.ok(release.includes(`EXE="dist/${expected}"`), 'release.sh must upload the same file name');
+    assert.ok(/--publish never/.test(pkg.scripts.build), 'local builds must not auto-publish');
+});

@@ -1164,6 +1164,26 @@
         .statusbar-breakdown, #statusbarBreakdown { gap: 6px; display: flex; align-items: center; }
         .statusbar-dim { opacity: 0.35; }
 
+        /* Version / update control in the status bar */
+        .statusbar-update {
+            display: flex; align-items: center; gap: 5px;
+            height: 20px; margin-right: -6px; padding: 0 8px;
+            background: transparent; border: 0; border-radius: 6px;
+            color: inherit; font: inherit; white-space: nowrap; cursor: pointer;
+            opacity: 0.75; transition: background 0.15s, opacity 0.15s, color 0.15s;
+        }
+        .statusbar-update:hover:not(:disabled) { opacity: 1; background: var(--bg-card-hover); }
+        .statusbar-update:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+        .statusbar-update:disabled { cursor: default; }
+        .statusbar-update.is-busy { opacity: 1; }
+        .statusbar-update.is-spin .statusbar-ico { animation: spin 1s linear infinite; }
+        .statusbar-update.is-action { opacity: 1; color: #fff; background: var(--accent); font-weight: 600; }
+        .statusbar-update.is-action:hover:not(:disabled) { background: var(--accent); filter: brightness(1.1); }
+        .statusbar-update.is-action .statusbar-ico { opacity: 1; }
+        .statusbar-update.is-error { opacity: 1; color: var(--accent-yellow); }
+        .statusbar-update-bar { width: 46px; height: 4px; border-radius: 2px; background: var(--border-color); overflow: hidden; }
+        .statusbar-update-bar > i { display: block; height: 100%; background: var(--accent); transition: width 0.3s; }
+
         /* ── Dashboard ── */
         .dash-welcome {
             display: flex;
@@ -2417,9 +2437,10 @@
                     <span id="statusbarLastAction">—</span>
                 </div>
                 <div class="statusbar-separator"></div>
-                <div class="statusbar-item statusbar-muted">
+                <button type="button" class="statusbar-update" id="statusbarUpdate" onclick="onStatusbarUpdateClick()" title="Check for updates">
+                    <svg class="ico statusbar-ico" id="statusbarUpdateIco" aria-hidden="true"><use href="#i-refresh"/></svg>
                     <span id="statusbarVersion">—</span>
-                </div>
+                </button>
             </div>
         </div>
 
@@ -2471,6 +2492,10 @@
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <input type="checkbox" id="settingsAutoStart" style="cursor:pointer; transform:scale(1.1);">
                     <label for="settingsAutoStart" style="font-size:12px; cursor:pointer;">Launch at system startup (minimized to tray)</label>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                    <input type="checkbox" id="settingsAutoDownloadUpdates" style="cursor:pointer; transform:scale(1.1);">
+                    <label for="settingsAutoDownloadUpdates" style="font-size:12px; cursor:pointer;" title="Updates are always checked automatically. Installing needs a click in the status bar, or happens when you quit.">Download updates automatically</label>
                 </div>
             </div>
 
@@ -3221,6 +3246,8 @@
                 }
             } catch (e) {}
 
+            initUpdateStatus();
+
             // Load saved app config (cache for session)
             cachedAppConfig = await window.api.getAppConfig();
             const config = cachedAppConfig;
@@ -3705,6 +3732,7 @@
 
             document.getElementById('settingsTheme').value = config.theme || 'dark';
             document.getElementById('settingsAutoStart').checked = config.autoStart === true;
+            document.getElementById('settingsAutoDownloadUpdates').checked = config.autoDownloadUpdates !== false;
             document.getElementById('settingsClonePath').value = config.clonePath || '';
 
             document.getElementById('settingsModal').style.display = 'flex';
@@ -3815,6 +3843,7 @@
                 aiModel:             document.getElementById('settingsAIModel').value,
                 theme:               document.getElementById('settingsTheme').value,
                 autoStart:           document.getElementById('settingsAutoStart').checked,
+                autoDownloadUpdates: document.getElementById('settingsAutoDownloadUpdates').checked,
                 clonePath:           document.getElementById('settingsClonePath').value
             };
             await window.api.saveAppConfig(newConfig);
@@ -5190,6 +5219,114 @@ npm start</pre>
                 dot.className = 'statusbar-dot loading';
                 document.getElementById('statusbarConnection').textContent = 'Loading…';
             }
+        }
+
+        // ── Auto update (status bar) ─────────────────────────────────────────
+        let updateStatus = { state: 'idle' };
+        let updateCheckRequested = false; // show "up to date" / error toasts only for manual checks
+        let updateReadyAnnounced = false;
+        let updateErrorVisible = false;   // background check errors (e.g. offline) stay quiet
+
+        async function initUpdateStatus() {
+            window.api.onUpdateStatus(applyUpdateStatus);
+            try { applyUpdateStatus(await window.api.getUpdateStatus()); } catch (e) {}
+        }
+
+        function applyUpdateStatus(s) {
+            const prev = updateStatus.state;
+            updateStatus = s || { state: 'idle' };
+            if (updateStatus.state === 'error') updateErrorVisible = updateCheckRequested || prev === 'downloading';
+            renderUpdateStatus();
+
+            if (updateCheckRequested && ['up-to-date', 'error', 'available', 'downloading'].includes(s.state)) {
+                updateCheckRequested = false;
+                if (s.state === 'up-to-date') showToast(`You're on the latest version (v${s.currentVersion}).`, 'success');
+                else if (s.state === 'error') showToast('Update check failed: ' + s.error, 'error');
+            } else if (s.state === 'error' && prev === 'downloading') {
+                showToast('Update download failed: ' + s.error, 'error');
+            }
+            if (s.state === 'downloaded' && !updateReadyAnnounced) {
+                updateReadyAnnounced = true;
+                showToast(`Version ${s.version} is ready. Click "Restart to update" in the status bar to install it.`, 'info', { duration: 8000 });
+            }
+        }
+
+        function renderUpdateStatus() {
+            const btn = document.getElementById('statusbarUpdate');
+            const label = document.getElementById('statusbarVersion');
+            const ico = document.getElementById('statusbarUpdateIco');
+            if (!btn) return;
+            const s = updateStatus;
+            const current = s.currentVersion ? 'v' + s.currentVersion : label.textContent;
+            let text = current, title = 'Check for updates', icon = 'i-refresh', cls = '', disabled = false;
+
+            switch (s.state) {
+                case 'checking':
+                    text = 'Checking for updates…'; cls = 'is-busy is-spin'; disabled = true; title = 'Checking GitHub for a newer version';
+                    break;
+                case 'up-to-date':
+                    title = `Up to date. Last checked ${new Date(s.lastChecked).toLocaleTimeString()}. Click to check again.`;
+                    break;
+                case 'available':
+                    text = `Update v${s.version}`; icon = 'i-download'; cls = 'is-action'; title = `Download version ${s.version}`;
+                    break;
+                case 'downloading':
+                    text = `Downloading v${s.version || ''} ${s.percent || 0}%`; icon = 'i-download'; cls = 'is-busy'; disabled = true;
+                    title = 'Downloading the update in the background';
+                    break;
+                case 'downloaded':
+                    text = `Restart to update v${s.version}`; icon = 'i-rocket'; cls = 'is-action'; title = `Install version ${s.version} and restart`;
+                    break;
+                case 'error':
+                    title = `${s.error || 'Update check failed'}. Click to try again.`;
+                    if (updateErrorVisible) { text = `${current} (update failed)`; icon = 'i-warning'; cls = 'is-error'; }
+                    break;
+                case 'unsupported':
+                    title = 'Updates are available in the installed app';
+                    break;
+            }
+
+            btn.className = 'statusbar-update ' + cls;
+            btn.disabled = disabled;
+            btn.title = title;
+            btn.setAttribute('aria-label', title);
+            ico.querySelector('use').setAttribute('href', '#' + icon);
+            label.textContent = text;
+
+            let bar = btn.querySelector('.statusbar-update-bar');
+            if (s.state === 'downloading') {
+                if (!bar) {
+                    bar = document.createElement('span');
+                    bar.className = 'statusbar-update-bar';
+                    bar.appendChild(document.createElement('i'));
+                    btn.appendChild(bar);
+                }
+                bar.firstChild.style.width = (s.percent || 0) + '%';
+            } else if (bar) {
+                bar.remove();
+            }
+        }
+
+        async function onStatusbarUpdateClick() {
+            const s = updateStatus;
+            if (s.state === 'unsupported') {
+                showToast('Automatic updates work in the installed app. Download the latest installer from GitHub Releases.', 'info');
+                return;
+            }
+            if (s.state === 'available') {
+                applyUpdateStatus(await window.api.downloadUpdate());
+                return;
+            }
+            if (s.state === 'downloaded') {
+                const ok = await showConfirm(
+                    `Install version ${s.version} now?\n\nThe app will close, install the update and open again. Windows may ask for administrator permission.`,
+                    { type: 'info', title: 'Restart to update', okText: 'Restart and update' }
+                );
+                if (ok && !(await window.api.installUpdate())) showToast('The update is not ready to install yet.', 'warning');
+                return;
+            }
+            updateCheckRequested = true;
+            applyUpdateStatus(await window.api.checkForUpdates());
         }
 
         function setStatusbarAction(text) {

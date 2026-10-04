@@ -130,10 +130,99 @@ app.whenReady().then(() => {
             createWindow();
         }
     });
+
+    if (updatesSupported()) {
+        initAutoUpdater();
+        setTimeout(() => checkForUpdatesNow(), UPDATE_FIRST_CHECK_MS);
+        setInterval(() => checkForUpdatesNow(), UPDATE_CHECK_INTERVAL_MS);
+    }
 });
 
 app.on('window-all-closed', () => {
     // Don't quit - keep running in tray
+});
+
+// ─── Auto Update (electron-updater + GitHub Releases) ────────────────────────
+// Reads latest.yml from the newest GitHub release. electron-updater verifies the
+// downloaded installer against its sha512. Installing always needs a user click
+// in the status bar, or happens automatically when the app quits.
+const UPDATE_FIRST_CHECK_MS = 15 * 1000;
+const UPDATE_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
+let autoUpdater = null;
+let updateState = { state: 'idle', currentVersion: app.getVersion() };
+
+function updatesSupported() {
+    // Only the installed app has app-update.yml; FORCE_DEV_UPDATE=1 is for local testing.
+    return app.isPackaged || process.env.FORCE_DEV_UPDATE === '1';
+}
+
+function setUpdateState(patch) {
+    updateState = { ...updateState, ...patch };
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('update:status', updateState);
+    }
+}
+
+function updateErrorMessage(err) {
+    const msg = String((err && err.message) || err || 'Unknown error');
+    if (/ERR_INTERNET_DISCONNECTED|ENOTFOUND|EAI_AGAIN|ECONNREFUSED|ETIMEDOUT|ERR_NETWORK/i.test(msg)) {
+        return 'Could not reach GitHub. Check your internet connection.';
+    }
+    return msg.split('\n')[0].slice(0, 200);
+}
+
+function initAutoUpdater() {
+    if (autoUpdater) return;
+    ({ autoUpdater } = require('electron-updater'));
+    autoUpdater.autoDownload = false; // decided per update from the user's setting
+    autoUpdater.autoInstallOnAppQuit = true;
+    autoUpdater.allowPrerelease = false;
+    if (!app.isPackaged) autoUpdater.forceDevUpdateConfig = true;
+
+    autoUpdater.on('checking-for-update', () => setUpdateState({ state: 'checking', error: null }));
+    autoUpdater.on('update-not-available', () => setUpdateState({ state: 'up-to-date', lastChecked: Date.now() }));
+    autoUpdater.on('update-available', (info) => {
+        setUpdateState({ state: 'available', version: info.version, lastChecked: Date.now() });
+        if (loadConfig().autoDownloadUpdates !== false) downloadUpdateNow();
+    });
+    autoUpdater.on('download-progress', (p) => setUpdateState({ state: 'downloading', percent: Math.floor(p.percent || 0) }));
+    autoUpdater.on('update-downloaded', (info) => setUpdateState({ state: 'downloaded', version: info.version, percent: 100 }));
+    autoUpdater.on('error', (err) => setUpdateState({ state: 'error', error: updateErrorMessage(err) }));
+}
+
+async function checkForUpdatesNow() {
+    if (!updatesSupported()) {
+        setUpdateState({ state: 'unsupported' });
+        return updateState;
+    }
+    initAutoUpdater();
+    // Never interrupt a download or drop an update that is ready to install.
+    if (['checking', 'downloading', 'downloaded'].includes(updateState.state)) return updateState;
+    try {
+        await autoUpdater.checkForUpdates();
+    } catch (e) {
+        setUpdateState({ state: 'error', error: updateErrorMessage(e) });
+    }
+    return updateState;
+}
+
+function downloadUpdateNow() {
+    if (!autoUpdater || updateState.state !== 'available') return updateState;
+    setUpdateState({ state: 'downloading', percent: 0 });
+    autoUpdater.downloadUpdate().catch((e) => setUpdateState({ state: 'error', error: updateErrorMessage(e) }));
+    return updateState;
+}
+
+ipcMain.handle('update:getStatus', async () => (updatesSupported() ? updateState : { ...updateState, state: 'unsupported' }));
+ipcMain.handle('update:check', async () => checkForUpdatesNow());
+ipcMain.handle('update:download', async () => downloadUpdateNow());
+ipcMain.handle('update:install', async () => {
+    if (!autoUpdater || updateState.state !== 'downloaded') return false;
+    // The window's close handler only hides to tray unless we are quitting.
+    app.isQuitting = true;
+    // Silent install (Windows may still ask for administrator permission), then relaunch.
+    setImmediate(() => autoUpdater.quitAndInstall(true, true));
+    return true;
 });
 
 // Async git runner: never blocks the main process. Errors are redacted so a
