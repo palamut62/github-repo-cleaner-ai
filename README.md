@@ -15,7 +15,7 @@
 <p align="center">
   <img src="https://img.shields.io/github/v/release/palamut62/github-repo-cleaner-ai?color=2ea44f&label=release" alt="Release" />
   <img src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux-2ea44f" alt="Platform" />
-  <img src="https://img.shields.io/badge/Electron-28-47848F?logo=electron&logoColor=white" alt="Electron" />
+  <img src="https://img.shields.io/badge/Electron-44-47848F?logo=electron&logoColor=white" alt="Electron" />
   <img src="https://img.shields.io/badge/Node.js-20-339933?logo=node.js&logoColor=white" alt="Node.js" />
   <img src="https://img.shields.io/github/license/palamut62/github-repo-cleaner-ai?color=2ea44f" alt="License" />
 </p>
@@ -98,7 +98,7 @@ Double-click any repository for stats (stars, forks, watchers, issues), language
 
 | Layer | Technology |
 |---|---|
-| Desktop runtime | Electron 28 |
+| Desktop runtime | Electron 44 |
 | Language / runtime | Node.js 20 |
 | Packaging | electron-builder |
 | Icons | sharp, png-to-ico |
@@ -197,7 +197,7 @@ npm run build:portable
 npm run build:linux
 ```
 
-Artifacts are written to the `dist/` folder. Tagged releases are published via the GitHub Actions **Build Windows Installer** workflow and attached to the corresponding GitHub Release.
+Artifacts are written to the `dist/` folder. Releases are published with `./release.sh <version> "<message>"`. The manual GitHub Actions **Build Windows Installer** workflow can also build the installer; when it is run on a tag that matches the `package.json` version (`v<version>`), the installer is attached to that release, otherwise it is only uploaded as a workflow artifact. Run the tests with `npm test`.
 
 ## Warnings
 
@@ -226,7 +226,9 @@ Contributions are welcome. Fork the repo, create a feature branch, commit with c
 
 ## Security
 
-Tokens and API keys are stored in your local app configuration and are never committed to the repository. If you discover a security issue, please open a private report via GitHub Issues rather than disclosing it publicly.
+Tokens and API keys are stored in your local app configuration and are never committed to the repository. GitHub tokens are encrypted with the OS keychain (DPAPI / Keychain / libsecret via Electron `safeStorage`); if no secure storage is available, they are kept in memory for the current session only and never written to disk in plain text.
+
+If you discover a security issue, please do not open a public issue. Report it privately via the repository's **Security > Report a vulnerability** page (GitHub private vulnerability reporting) or contact the product owner directly on [X](https://x.com/palamut62).
 
 ## FAQ
 
@@ -242,4 +244,4 @@ Released under the [MIT License](LICENSE).
 
 ---
 
-<p align="center">Made by <a href="https://github.com/palamut62">palamut62</a></p>
+<p align="center">Product Owner: Umut Çelik · <a href="https://github.com/palamut62">GitHub</a> · <a href="https://x.com/palamut62">X</a></p>

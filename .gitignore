@@ -23,3 +23,21 @@ desktop.ini
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# AI tool files (not part of the app)
+CLAUDE.md
+.claude/
+AGENTS.md
+.codex/
+GEMINI.md
+.gemini/
+.cursor/
+.cursorrules
+.windsurf/
+.windsurfrules
+.aider*
+.opencode/
+opencode.json
+.github/copilot-instructions.md
+.specstory/
+.continue/
